@@ -20,7 +20,7 @@ export default function Sidebar({ activePage, onNavigate }) {
       <div className="sidebar-brand">
         <div className="brand-icon">⛏</div>
         <div className="brand-text">
-          COAL DOC
+          COAL SYSTEM
           <span>Extractor v1.0</span>
         </div>
       </div>

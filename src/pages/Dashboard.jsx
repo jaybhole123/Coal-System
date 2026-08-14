@@ -3,7 +3,7 @@ export default function Dashboard({ onNavigate }) {
     <div style={{ maxWidth: 900, margin: "0 auto", paddingTop: 40 }}>
       <div style={{ textAlign: "center", marginBottom: 40 }}>
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, margin: "0 0 10px 0", color: "var(--text)" }}>
-          Welcome to Coal Doc Extractor
+          Welcome to Coal System
         </h1>
         <p style={{ color: "var(--muted)", fontSize: 15, margin: 0 }}>
           Select a tool below to upload and process your PDF documents.
