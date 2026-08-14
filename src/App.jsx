@@ -1,0 +1,66 @@
+import { useState } from "react";
+import Sidebar from "./components/Sidebar";
+import Topbar from "./components/Topbar";
+import Dashboard from "./pages/Dashboard";
+import PaymentAdvicePage from "./pages/PaymentAdvicePage";
+import SalesOrderPage from "./pages/SalesOrderPage";
+
+// Initial state for the Payment Advice page (lifted here so navigating away preserves data)
+const PAYMENT_INIT = {
+  view: "drop",
+  loading: false,
+  loadingName: "",
+  error: null,
+  data: null,
+  fileName: "",
+};
+
+const SALES_ORDER_INIT = {
+  view: "drop",
+  loading: false,
+  loadingName: "",
+  error: null,
+  data: null,
+  fileName: "",
+};
+
+export default function App() {
+  const [activePage, setActivePage] = useState("dashboard");
+  const [paymentState, setPaymentState] = useState(PAYMENT_INIT);
+  const [salesOrderState, setSalesOrderState] = useState(SALES_ORDER_INIT);
+
+  const renderPage = () => {
+    switch (activePage) {
+      case "dashboard":
+        return <Dashboard onNavigate={setActivePage} />;
+      case "payment-advice":
+        return (
+          <PaymentAdvicePage
+            state={paymentState}
+            setState={setPaymentState}
+          />
+        );
+      case "sales-order":
+        return (
+          <SalesOrderPage
+            state={salesOrderState}
+            setState={setSalesOrderState}
+          />
+        );
+      default:
+        return <Dashboard onNavigate={setActivePage} />;
+    }
+  };
+
+  return (
+    <div className="app-layout">
+      <Sidebar activePage={activePage} onNavigate={setActivePage} />
+      <div className="main-area">
+        <Topbar activePage={activePage} />
+        <main className="page-content" id="main-content">
+          {renderPage()}
+        </main>
+      </div>
+    </div>
+  );
+}
