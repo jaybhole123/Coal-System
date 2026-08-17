@@ -63,6 +63,53 @@ export default function PaymentAdvicePage({ state, setState }) {
     downloadBlob(toCSV(data), fileName.replace(/\.pdf$/i, "") + ".csv", "text/csv");
   };
 
+  const handleDeleteRow = (index) => {
+    setState((s) => {
+      const newData = [...s.data];
+      newData.splice(index, 1);
+      if (newData.length === 0) {
+        return { ...s, view: "drop", data: null, fileName: "" };
+      }
+      return { ...s, data: newData };
+    });
+  };
+
+  const handleUpdateRow = (index, updatedRow) => {
+    setState((s) => {
+      const newData = [...s.data];
+      
+      // Map flat updatedRow back to nested data structure
+      const item = { ...newData[index] };
+      item.receiver = {
+        ...item.receiver,
+        customerCode: updatedRow.customerCode,
+        customerName: updatedRow.customerName,
+        gstin: updatedRow.gstin,
+      };
+      item.areaOffice = updatedRow.areaOffice;
+      item.contract = {
+        ...item.contract,
+        salesDocNo: updatedRow.salesDocNo,
+        salesOrderDate: updatedRow.salesOrderDate,
+        paymentDueDate: updatedRow.paymentDueDate,
+        auctionDateRef: updatedRow.auctionDateRef,
+      };
+      item.material = {
+        ...item.material,
+        materialCode: updatedRow.materialCode,
+        description: updatedRow.description,
+        quantity: updatedRow.quantity,
+      };
+      item.totals = {
+        ...item.totals,
+        requisitePayment: updatedRow.requisitePayment ? updatedRow.requisitePayment.replace(/[^0-9.]/g, "") : null,
+      };
+      
+      newData[index] = item;
+      return { ...s, data: newData };
+    });
+  };
+
   return (
     <div>
       {view === "drop" && (
@@ -83,6 +130,8 @@ export default function PaymentAdvicePage({ state, setState }) {
           onAddFiles={handleFiles}
           onExportJson={handleExportJson}
           onExportCsv={handleExportCsv}
+          onDeleteRow={handleDeleteRow}
+          onUpdateRow={handleUpdateRow}
         />
       )}
     </div>

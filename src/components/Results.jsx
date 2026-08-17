@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { InfoCard, MaterialCard } from "./Cards";
 import PricingTable from "./PricingTable";
 import { INR, display } from "../utils/format";
+import EditModal from "./EditModal";
 
 /**
  * Full results view — shown after a PDF is successfully parsed.
@@ -12,13 +13,12 @@ import { INR, display } from "../utils/format";
  *   onReset     — callback to go back to dropzone
  *   onExportJson / onExportCsv — export callbacks
  */
-export default function Results({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv }) {
-  const [editingRows, setEditingRows] = useState({});
+export default function Results({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv, onDeleteRow, onUpdateRow }) {
+  const [editingIndex, setEditingIndex] = useState(null);
   const fileInputRef = useRef(null);
   
   const dataArray = Array.isArray(data) ? data : [data];
   const firstData = dataArray[0];
-  const { contract, colliery, material, receiver, totals } = firstData;
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files || []).filter(f => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
@@ -26,8 +26,13 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
     e.target.value = "";
   };
 
-  const toggleEdit = (index) => {
-    setEditingRows(prev => ({ ...prev, [index]: !prev[index] }));
+  const handleEditClick = (index) => {
+    setEditingIndex(index);
+  };
+
+  const handleSaveEdit = (updatedData) => {
+    onUpdateRow && onUpdateRow(editingIndex, updatedData);
+    setEditingIndex(null);
   };
 
   const buildSummaryRow = (d) => ({
@@ -54,23 +59,12 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
           <div className="results-hint">Extraction complete</div>
         </div>
         <div className="results-actions">
-          <button className="btn" id="btnJson" onClick={onExportJson}>
-            ↓ Export JSON
-          </button>
-          <button className="btn" id="btnCsv" onClick={onExportCsv}>
-            ↓ Export CSV
-          </button>
-          <button className="btn ghost" id="btnReset" onClick={onReset}>
-            START OVER
-          </button>
           <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept=".pdf" />
           <button className="btn" onClick={() => fileInputRef.current?.click()}>
             ADD PDF
           </button>
         </div>
       </div>
-
-      {/* ── Cards grid removed per user request ── */}
 
       {/* ════════════════════════════════════════════
           SUMMARY DATA TABLE
@@ -113,92 +107,50 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
             <tbody>
               {dataArray.map((d, index) => {
                 const summaryRow = buildSummaryRow(d);
-                const isEditing = editingRows[index] || false;
                 return (
                   <tr key={index}>
                     <td className="row-num">{index + 1}</td>
-                    <td contentEditable={isEditing} suppressContentEditableWarning style={{ backgroundColor: isEditing ? "var(--hover)" : "transparent", padding: isEditing ? "4px" : "", border: isEditing ? "1px dashed var(--border)" : "", outline: "none" }}>{summaryRow.customerCode}</td>
-                    <td className="text-cell" title={summaryRow.customerName} contentEditable={isEditing} suppressContentEditableWarning style={{ backgroundColor: isEditing ? "var(--hover)" : "transparent", padding: isEditing ? "4px" : "", border: isEditing ? "1px dashed var(--border)" : "", outline: "none" }}>
-                      {summaryRow.customerName}
-                    </td>
-                    <td contentEditable={isEditing} suppressContentEditableWarning style={{ backgroundColor: isEditing ? "var(--hover)" : "transparent", padding: isEditing ? "4px" : "", border: isEditing ? "1px dashed var(--border)" : "", outline: "none" }}>{summaryRow.gstin}</td>
-                    <td className="text-cell" title={summaryRow.areaOffice} contentEditable={isEditing} suppressContentEditableWarning style={{ backgroundColor: isEditing ? "var(--hover)" : "transparent", padding: isEditing ? "4px" : "", border: isEditing ? "1px dashed var(--border)" : "", outline: "none" }}>
-                      {summaryRow.areaOffice}
-                    </td>
-                    <td contentEditable={isEditing} suppressContentEditableWarning style={{ backgroundColor: isEditing ? "var(--hover)" : "transparent", padding: isEditing ? "4px" : "", border: isEditing ? "1px dashed var(--border)" : "", outline: "none" }}>{summaryRow.salesDocNo}</td>
-                    <td contentEditable={isEditing} suppressContentEditableWarning style={{ backgroundColor: isEditing ? "var(--hover)" : "transparent", padding: isEditing ? "4px" : "", border: isEditing ? "1px dashed var(--border)" : "", outline: "none" }}>{summaryRow.salesOrderDate}</td>
-                    <td contentEditable={isEditing} suppressContentEditableWarning style={{ backgroundColor: isEditing ? "var(--hover)" : "transparent", padding: isEditing ? "4px" : "", border: isEditing ? "1px dashed var(--border)" : "", outline: "none" }}>{summaryRow.paymentDueDate}</td>
-                    <td className="text-cell" title={summaryRow.auctionDateRef} contentEditable={isEditing} suppressContentEditableWarning style={{ backgroundColor: isEditing ? "var(--hover)" : "transparent", padding: isEditing ? "4px" : "", border: isEditing ? "1px dashed var(--border)" : "", outline: "none" }}>
-                      {summaryRow.auctionDateRef}
-                    </td>
-                    <td contentEditable={isEditing} suppressContentEditableWarning style={{ backgroundColor: isEditing ? "var(--hover)" : "transparent", padding: isEditing ? "4px" : "", border: isEditing ? "1px dashed var(--border)" : "", outline: "none" }}>{summaryRow.materialCode}</td>
-                    <td className="text-cell" title={summaryRow.description} contentEditable={isEditing} suppressContentEditableWarning style={{ backgroundColor: isEditing ? "var(--hover)" : "transparent", padding: isEditing ? "4px" : "", border: isEditing ? "1px dashed var(--border)" : "", outline: "none" }}>
-                      {summaryRow.description}
-                    </td>
-                    <td contentEditable={isEditing} suppressContentEditableWarning style={{ backgroundColor: isEditing ? "var(--hover)" : "transparent", padding: isEditing ? "4px" : "", border: isEditing ? "1px dashed var(--border)" : "", outline: "none" }}>{summaryRow.quantity}</td>
-                    <td className="amount-cell" contentEditable={isEditing} suppressContentEditableWarning style={{ backgroundColor: isEditing ? "var(--hover)" : "transparent", padding: isEditing ? "4px" : "", border: isEditing ? "1px dashed var(--border)" : "", outline: "none" }}>{summaryRow.requisitePayment}</td>
+                    <td>{summaryRow.customerCode}</td>
+                    <td className="text-cell" title={summaryRow.customerName}>{summaryRow.customerName}</td>
+                    <td>{summaryRow.gstin}</td>
+                    <td className="text-cell" title={summaryRow.areaOffice}>{summaryRow.areaOffice}</td>
+                    <td>{summaryRow.salesDocNo}</td>
+                    <td>{summaryRow.salesOrderDate}</td>
+                    <td>{summaryRow.paymentDueDate}</td>
+                    <td className="text-cell" title={summaryRow.auctionDateRef}>{summaryRow.auctionDateRef}</td>
+                    <td>{summaryRow.materialCode}</td>
+                    <td className="text-cell" title={summaryRow.description}>{summaryRow.description}</td>
+                    <td>{summaryRow.quantity}</td>
+                    <td className="amount-cell">{summaryRow.requisitePayment}</td>
                     <td style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                       <button
                         style={{
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "4px",
-                          padding: "4px 8px",
-                          fontSize: "11px",
-                          fontWeight: "500",
-                          borderRadius: "4px",
-                          border: "1px solid var(--border)",
-                          background: isEditing ? "#10b981" : "white",
-                          color: isEditing ? "white" : "var(--text)",
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
+                          padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px",
+                          border: "1px solid var(--border)", background: "white",
+                          color: "var(--text)", boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
                           transition: "all 0.15s ease",
                         }}
-                        onMouseOver={(e) => { e.currentTarget.style.background = isEditing ? "#059669" : "#f4f4f5"; }}
-                        onMouseOut={(e) => { e.currentTarget.style.background = isEditing ? "#10b981" : "white"; }}
-                        onClick={() => toggleEdit(index)}
-                        title={isEditing ? "Save" : "Edit"}
+                        onMouseOver={(e) => { e.currentTarget.style.background = "#f4f4f5"; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = "white"; }}
+                        onClick={() => handleEditClick(index)}
+                        title="Edit"
                       >
-                        {isEditing ? (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                            Save
-                          </>
-                        ) : (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                            Edit
-                          </>
-                        )}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        Edit
                       </button>
                       <button
                         style={{
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "4px",
-                          padding: "4px 8px",
-                          fontSize: "11px",
-                          fontWeight: "500",
-                          borderRadius: "4px",
-                          border: "1px solid #fee2e2",
-                          background: "#fef2f2",
-                          color: "#dc2626",
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                          transition: "all 0.15s ease",
+                          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
+                          padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px",
+                          border: "1px solid #fee2e2", background: "#fef2f2", color: "#dc2626",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.05)", transition: "all 0.15s ease",
                         }}
                         onMouseOver={(e) => { e.currentTarget.style.background = "#fee2e2"; }}
                         onMouseOut={(e) => { e.currentTarget.style.background = "#fef2f2"; }}
                         onClick={() => {
                           if(window.confirm("Are you sure you want to delete this row?")) {
-                            onReset(); // For now, delete will just reset the view as there's only 1 row
+                            onDeleteRow && onDeleteRow(index);
                           }
                         }}
                         title="Delete"
@@ -219,19 +171,29 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
             </tbody>
           </table>
         </div>
-
-        <p
-          style={{
-            marginTop: 10,
-            fontSize: 11.5,
-            color: "var(--muted)",
-            fontFamily: "var(--font-mono)",
-          }}
-        >
-          {/* 💡 Har nayi PDF upload karne par ek aur row add hogi (upcoming feature).
-          Abhi Export CSV / JSON se full data download kar sakte hain. */}
-        </p>
       </div>
+
+      <EditModal
+        isOpen={editingIndex !== null}
+        onClose={() => setEditingIndex(null)}
+        onSave={handleSaveEdit}
+        title="Edit Payment Advice"
+        initialData={editingIndex !== null ? buildSummaryRow(dataArray[editingIndex]) : null}
+        columns={[
+          { key: "customerCode", label: "Customer Code" },
+          { key: "customerName", label: "Customer Name" },
+          { key: "gstin", label: "GSTIN" },
+          { key: "areaOffice", label: "Area Office" },
+          { key: "salesDocNo", label: "Sales Doc No" },
+          { key: "salesOrderDate", label: "Sales Order Date" },
+          { key: "paymentDueDate", label: "Payment Due Date" },
+          { key: "auctionDateRef", label: "Auction Date & Ref" },
+          { key: "materialCode", label: "Material Code" },
+          { key: "description", label: "Description" },
+          { key: "quantity", label: "Quantity" },
+          { key: "requisitePayment", label: "Requisite Payment (INR)" },
+        ]}
+      />
     </section>
   );
 }

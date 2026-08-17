@@ -70,6 +70,26 @@ export default function Dashboard({ onNavigate }) {
             Open Tool →
           </button>
         </div>
+
+        {/* Invoice Tool */}
+        <div 
+          className="dash-card" 
+          style={{ cursor: "pointer", transition: "transform 0.2s, box-shadow 0.2s", padding: 30 }}
+          onClick={() => onNavigate("invoice")}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 24px rgba(0,0,0,0.1)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.05)"; }}
+        >
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🧾</div>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 24, margin: "0 0 8px 0", color: "var(--ember-bright)" }}>
+            Invoice PDF Extractor
+          </h2>
+          <p style={{ color: "var(--muted)", fontSize: 14, margin: "0 0 20px 0", lineHeight: 1.5 }}>
+            Extract supplier, buyer details, e-Way Bill info, and line items from Invoice PDFs.
+          </p>
+          <button className="btn" style={{ width: "100%", justifyContent: "center" }}>
+            Open Tool →
+          </button>
+        </div>
       </div>
 
       <div style={{ marginTop: 40, padding: 16, background: "rgba(0, 51, 102, 0.05)", borderRadius: "var(--radius)", border: "1px solid rgba(0, 51, 102, 0.1)", display: "flex", gap: 12, alignItems: "center" }}>

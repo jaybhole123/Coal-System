@@ -59,8 +59,51 @@ export default function SECLIntimationPage({ state, setState }) {
 
   const handleExportCsv = () => {
     if (!data) return;
-    const allItems = Array.isArray(data) ? data.flatMap(d => d.items || []) : data.items;
+    const allItems = data.flatMap((d, index) => d.items.map(item => ({ pdfIndex: index + 1, ...d.details, ...item })));
     downloadBlob(toSECLCSV(COLS, allItems), fileName.replace(/\.pdf$/i, "") + "_secl.csv", "text/csv");
+  };
+
+  const handleDeleteRow = (index) => {
+    setState((s) => {
+      const newData = [...s.data];
+      let currentIndex = 0;
+      for (let i = 0; i < newData.length; i++) {
+        const itemsCount = newData[i].items ? newData[i].items.length : 0;
+        if (index >= currentIndex && index < currentIndex + itemsCount) {
+          const itemIndex = index - currentIndex;
+          const newItems = [...newData[i].items];
+          newItems.splice(itemIndex, 1);
+          newData[i] = { ...newData[i], items: newItems };
+          break;
+        }
+        currentIndex += itemsCount;
+      }
+      // Check if all items across all PDFs are empty
+      const hasAnyItems = newData.some(d => d.items && d.items.length > 0);
+      if (!hasAnyItems) {
+        return { ...s, view: "drop", data: null, fileName: "" };
+      }
+      return { ...s, data: newData };
+    });
+  };
+
+  const handleUpdateRow = (index, updatedRow) => {
+    setState((s) => {
+      const newData = [...s.data];
+      let currentIndex = 0;
+      for (let i = 0; i < newData.length; i++) {
+        const itemsCount = newData[i].items ? newData[i].items.length : 0;
+        if (index >= currentIndex && index < currentIndex + itemsCount) {
+          const itemIndex = index - currentIndex;
+          const newItems = [...newData[i].items];
+          newItems[itemIndex] = updatedRow;
+          newData[i] = { ...newData[i], items: newItems };
+          break;
+        }
+        currentIndex += itemsCount;
+      }
+      return { ...s, data: newData };
+    });
   };
 
   return (
@@ -83,6 +126,8 @@ export default function SECLIntimationPage({ state, setState }) {
           onAddFiles={handleFiles}
           onExportJson={handleExportJson}
           onExportCsv={handleExportCsv}
+          onDeleteRow={handleDeleteRow}
+          onUpdateRow={handleUpdateRow}
         />
       )}
     </div>

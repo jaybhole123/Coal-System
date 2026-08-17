@@ -1,13 +1,10 @@
-import { useCallback } from "react";
+import { useState, useCallback } from "react";
 import Dropzone from "../components/Dropzone";
-import SalesOrderResults from "../components/SalesOrderResults";
-import { extractTextFromPdf, parseSalesOrder, toCSVSalesOrder, downloadBlob } from "../utils/salesOrderParser";
+import InvoiceResults from "../components/InvoiceResults";
+import { extractRows, downloadBlob } from "../utils/pdfParser";
+import { parseInvoiceText, toInvoiceCSV } from "../utils/invoiceParser";
 
-/**
- * SalesOrderPage — owns the upload/result state for this page.
- * Props: state & setState passed from App so navigating away and back preserves data.
- */
-export default function SalesOrderPage({ state, setState }) {
+export default function InvoicePage({ state, setState }) {
   const { view, loading, loadingName, error, data, fileName } = state;
 
   const handleFiles = useCallback(
@@ -24,8 +21,8 @@ export default function SalesOrderPage({ state, setState }) {
       try {
         const results = await Promise.all(
           files.map(async (file) => {
-            const text = await extractTextFromPdf(file);
-            return parseSalesOrder(text);
+            const rows = await extractRows(file);
+            return parseInvoiceText(rows);
           })
         );
         setState((s) => {
@@ -40,10 +37,7 @@ export default function SalesOrderPage({ state, setState }) {
         setState((s) => ({
           ...s,
           loading: false,
-          error:
-            "PDF read nahi ho payi. File corrupt, password-protected, ya format alag hai. (" +
-            (err?.message ?? "unknown error") +
-            ")",
+          error: "PDF read nahi ho payi. File corrupt, password-protected, ya format alag hai. (" + (err?.message ?? "unknown error") + ")",
         }));
       }
     },
@@ -55,12 +49,12 @@ export default function SalesOrderPage({ state, setState }) {
 
   const handleExportJson = () => {
     if (!data) return;
-    downloadBlob(JSON.stringify(data, null, 2), fileName.replace(/\.pdf$/i, "") + "_SO.json", "application/json");
+    downloadBlob(JSON.stringify(data, null, 2), fileName.replace(/\.pdf$/i, "") + "_invoice.json", "application/json");
   };
 
   const handleExportCsv = () => {
     if (!data) return;
-    downloadBlob(toCSVSalesOrder(data), fileName.replace(/\.pdf$/i, "") + "_SO.csv", "text/csv");
+    downloadBlob(toInvoiceCSV(data), fileName.replace(/\.pdf$/i, "") + "_invoice.csv", "text/csv");
   };
 
   const handleDeleteRow = (index) => {
@@ -77,42 +71,31 @@ export default function SalesOrderPage({ state, setState }) {
   const handleUpdateRow = (index, updatedRow) => {
     setState((s) => {
       const newData = [...s.data];
-      const item = { ...newData[index] };
-      
-      // Update details
-      item.details = {
-        ...item.details,
-        buyerCode: updatedRow.buyerCode,
-        buyerName: updatedRow.buyerName,
-        saleOrderNo: updatedRow.saleOrderNo,
-        saleOrderDate: updatedRow.saleOrderDate,
-        doDate: updatedRow.doDate,
-        bgNo: updatedRow.bgNo,
-      };
-
-      // Since Sales Order has a flat array of items, we'll assume there's 1 item for the row or we just update the first item for simplicity (if it's a summary row).
-      // Wait, Sales Order has multiple items per PDF! Let's check how the summary row is rendered.
-      // Actually, Sales Order Results renders `item` inside a single row. But `data` is `[{ details, items }]`.
-      // Let's defer mapping the items here until we see how SalesOrderResults handles it. We'll just pass updatedRow back directly for now.
-      
+      newData[index] = updatedRow;
       return { ...s, data: newData };
     });
   };
 
   return (
-    <div>
+    <div className="page-content">
+      <div className="topbar">
+        <h2>Invoice Reader</h2>
+        <span className="badge">PDF PROCESSING</span>
+      </div>
+
       {view === "drop" && (
         <Dropzone
+          title="Invoice PDF yahan drop karein"
+          icon="📄"
           onFiles={handleFiles}
           loading={loading}
           loadingName={loadingName}
           error={error}
-          title="Upload Sales Order PDF"
-          icon="📄"
         />
       )}
+
       {view === "results" && data && (
-        <SalesOrderResults
+        <InvoiceResults
           data={data}
           fileName={fileName}
           onReset={handleReset}
@@ -120,6 +103,7 @@ export default function SalesOrderPage({ state, setState }) {
           onExportJson={handleExportJson}
           onExportCsv={handleExportCsv}
           onDeleteRow={handleDeleteRow}
+          onUpdateRow={handleUpdateRow}
         />
       )}
     </div>

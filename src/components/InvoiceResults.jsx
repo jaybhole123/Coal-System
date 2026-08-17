@@ -1,16 +1,12 @@
-import { useState, useRef } from "react";
-import { COLS } from "../utils/seclParser";
-import { InfoCard } from "./Cards";
+import { useRef, useState } from "react";
+import { INVOICE_COLS } from "../utils/invoiceParser";
 import EditModal from "./EditModal";
 
-export default function SECLIntimationResults({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv, onDeleteRow, onUpdateRow }) {
+export default function InvoiceResults({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv, onDeleteRow, onUpdateRow }) {
   const dataArray = Array.isArray(data) ? data : [data];
-  const firstData = dataArray[0];
-  const { meta } = firstData;
-  const allItems = dataArray.flatMap(d => d.items || []);
-  const [activeTab, setActiveTab] = useState("table");
-  const [editingIndex, setEditingIndex] = useState(null);
+  const allItems = dataArray;
   const fileInputRef = useRef(null);
+  const [editingIndex, setEditingIndex] = useState(null);
 
   const handleEditClick = (index) => {
     setEditingIndex(index);
@@ -33,7 +29,7 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
       <div className="results-bar">
         <div>
           <div className="results-file" id="resFileName">{fileName}</div>
-          <div className="results-hint">SECL Intimation Extracted</div>
+          <div className="results-hint">Invoice Extracted</div>
         </div>
         <div className="results-actions">
           <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept=".pdf" />
@@ -46,15 +42,16 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
       <div className="results-content">
         <div className="summary-section" style={{ marginTop: 0 }}>
           <div className="summary-header">
-            <div className="summary-title">Extracted Items</div>
+            <div className="summary-title">Extracted Invoice Items</div>
           </div>
           <div className="summary-table-wrap">
             {allItems && allItems.length > 0 ? (
               <table className="stable">
                 <thead>
                   <tr>
-                    {COLS.map((c) => (
-                      <th key={c.label}>{c.label}</th>
+                    <th className="num-h">#</th>
+                    {INVOICE_COLS.map((c) => (
+                      <th key={c.key}>{c.label}</th>
                     ))}
                     <th>Action</th>
                   </tr>
@@ -63,9 +60,10 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
                   {allItems.map((row, i) => {
                     return (
                       <tr key={i}>
-                        {COLS.map((c) => (
-                          <td key={c.label}>
-                            {row[c.label] || "—"}
+                        <td className="row-num">{i + 1}</td>
+                        {INVOICE_COLS.map((c) => (
+                          <td key={c.key}>
+                            {row[c.key] || "—"}
                           </td>
                         ))}
                         <td style={{ display: "flex", gap: "6px", alignItems: "center" }}>
@@ -118,9 +116,9 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
         isOpen={editingIndex !== null}
         onClose={() => setEditingIndex(null)}
         onSave={handleSaveEdit}
-        title="Edit SECL Intimation"
+        title="Edit Invoice"
         initialData={editingIndex !== null ? allItems[editingIndex] : null}
-        columns={COLS}
+        columns={INVOICE_COLS}
       />
     </section>
   );

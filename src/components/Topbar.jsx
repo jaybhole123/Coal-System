@@ -2,6 +2,7 @@ const PAGE_META = {
   dashboard: { title: "Dashboard", breadcrumb: "Overview" },
   "payment-advice": { title: "Payment Advice Reader", breadcrumb: "PDF Processing" },
   "sales-order": { title: "Sales Order Extractor", breadcrumb: "PDF Processing" },
+  invoice: { title: "Invoice PDF Extractor", breadcrumb: "PDF Processing" },
   "upload-history": { title: "Upload History", breadcrumb: "PDF Processing" },
   reports: { title: "Reports", breadcrumb: "Analytics" },
   settings: { title: "Settings", breadcrumb: "System" },
