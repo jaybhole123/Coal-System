@@ -33,6 +33,10 @@ function matchOne(text, regex) {
 export function parseSalesOrder(text) {
   const clean = text.replace(/\s+/g, ' ');
 
+  if (!clean.toUpperCase().includes("SALES ORDER") && !clean.toUpperCase().includes("DELIVERY ORDER")) {
+    throw new Error("Invalid Format: Uploaded file is not a Sales Order PDF.");
+  }
+
   const data = {
     document_type: matchOne(clean, /(SALES ORDER)/i),
     company: {
@@ -135,6 +139,10 @@ export function parseSalesOrder(text) {
   const ftMatch = clean.match(/FT\s+(\d+)\s+([A-Za-z]+ \d{1,2},\s*\d{4})\s+(\d+)\s+([A-Za-z ]+?)\s+([\d.]+)/i);
   if (ftMatch) {
     data.bank_details.push({ type: 'FT', utr: ftMatch[1], date_of_payment: ftMatch[2], document_no: ftMatch[3], bank_name: ftMatch[4].trim(), amount: ftMatch[5] });
+  }
+
+  if (data.line_items.length === 0) {
+    throw new Error("Invalid Format: Uploaded file is not a valid Sales Order PDF (No line items found).");
   }
 
   return data;

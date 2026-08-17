@@ -8,6 +8,10 @@ export function parseInvoiceText(rows) {
   const lines = rows.map(l => l.trim()).filter(Boolean);
   const t = rawText.replace(/\s+/g,' ');
 
+  if (!t.toUpperCase().includes("INVOICE") && !t.toUpperCase().includes("TAX INVOICE")) {
+    throw new Error("Invalid Format: Uploaded file is not an Invoice PDF.");
+  }
+
   const data = {};
   data.invoiceNo   = grab(t, /Invoice\s*No\.?\s*:?\s*([A-Za-z0-9\/\-]+)/i);
   data.invoiceDate = grab(t, /(?<!e-Way Bill\s)Date\s*:?\s*([0-9]{1,2}-[A-Za-z]{3}-[0-9]{2,4})/i);
@@ -74,6 +78,10 @@ export function parseInvoiceText(rows) {
         amount: goodsMatch[6]
       });
     }
+  }
+
+  if (data.goods.length === 0 && !data.invoiceNo) {
+    throw new Error("Invalid Format: Uploaded file is not a valid Invoice PDF (No invoice items found).");
   }
 
   return data;

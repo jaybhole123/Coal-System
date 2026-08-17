@@ -29,17 +29,20 @@ export default function EditModal({ isOpen, onClose, onSave, title = "Edit Recor
         
         <div style={styles.body}>
           <div style={styles.grid}>
-            {columns.map((col) => (
-              <div key={col.key} style={styles.formGroup}>
-                <label style={styles.label}>{col.label}</label>
-                <input
-                  type="text"
-                  value={formData[col.key] || ""}
-                  onChange={(e) => handleChange(col.key, e.target.value)}
-                  style={styles.input}
-                />
-              </div>
-            ))}
+            {columns.map((col) => {
+              const fieldKey = col.key || col.label;
+              return (
+                <div key={fieldKey} style={styles.formGroup}>
+                  <label style={styles.label}>{col.label}</label>
+                  <input
+                    type="text"
+                    value={formData[fieldKey] || ""}
+                    onChange={(e) => handleChange(fieldKey, e.target.value)}
+                    style={styles.input}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
 

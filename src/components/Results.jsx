@@ -36,18 +36,18 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
   };
 
   const buildSummaryRow = (d) => ({
-    customerCode: display(d.receiver.customerCode),
-    customerName: display(d.receiver.customerName),
-    gstin: display(d.receiver.gstin),
+    customerCode: display(d.receiver?.customerCode),
+    customerName: display(d.receiver?.customerName),
+    gstin: display(d.receiver?.gstin),
     areaOffice: display(d.areaOffice),
-    salesDocNo: display(d.contract.salesDocNo),
-    salesOrderDate: display(d.contract.salesOrderDate),
-    paymentDueDate: display(d.contract.paymentDueDate),
-    auctionDateRef: display(d.contract.auctionDateRef),
+    salesDocNo: display(d.contract?.salesDocNo),
+    salesOrderDate: display(d.contract?.salesOrderDate),
+    paymentDueDate: display(d.contract?.paymentDueDate),
+    auctionDateRef: display(d.contract?.auctionDateRef),
     materialCode: display(d.material?.materialCode),
     description: display(d.material?.description),
     quantity: d.material ? `${d.material.quantity ?? "—"} ${d.material.unit ?? ""}`.trim() : "—",
-    requisitePayment: d.totals.requisitePayment !== null ? `₹ ${INR(d.totals.requisitePayment)}` : "—",
+    requisitePayment: d.totals?.requisitePayment !== null && d.totals?.requisitePayment !== undefined ? `₹ ${INR(d.totals.requisitePayment)}` : "—",
   });
 
   return (
@@ -64,6 +64,70 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
             ADD PDF
           </button>
         </div>
+      </div>
+
+      {/* ════════════════════════════════════════════
+          FULL DATA CARDS (Per PDF)
+      ════════════════════════════════════════════ */}
+      <div className="results-content">
+        {dataArray.map((d, index) => (
+          <div key={index} style={{ marginBottom: 32 }}>
+            <h3 style={{ fontSize: 16, marginBottom: 12, color: "var(--text)" }}>
+              File {index + 1} Extracted Data
+            </h3>
+            <div className="grid">
+              <InfoCard
+                title="Receiver Details"
+                fields={[
+                  ["Customer Code", d.receiver?.customerCode],
+                  ["Customer Name", d.receiver?.customerName],
+                  ["GSTIN", d.receiver?.gstin],
+                  ["Area Office", d.areaOffice],
+                ]}
+              />
+              <InfoCard
+                title="Consignee Details"
+                fields={[
+                  ["Customer Code", d.consignee?.customerCode],
+                  ["Customer Name", d.consignee?.customerName],
+                  ["GSTIN", d.consignee?.gstin],
+                ]}
+              />
+              <InfoCard
+                title="Contract & Order Details"
+                fields={[
+                  ["Contract Number", d.contract?.contractNumber],
+                  ["Sales Doc No", d.contract?.salesDocNo],
+                  ["Sales Order Date", d.contract?.salesOrderDate],
+                  ["PI Number", d.contract?.piNumber],
+                  ["PI Date", d.contract?.piDate],
+                  ["Payment Due Date", d.contract?.paymentDueDate],
+                  ["Scheme", d.contract?.schemeName],
+                  ["Bid ID", d.contract?.bidId],
+                  ["Auction Date & Ref", d.contract?.auctionDateRef],
+                  ["Contract Sign Date", d.contract?.contractSignDate],
+                  ["Valid To", d.contract?.validToDate],
+                  ["Type of Consumer", d.contract?.typeOfConsumer],
+                  ["Mode of Transport", d.contract?.modeOfTransport],
+                ]}
+              />
+              <InfoCard
+                title="Colliery & Grade"
+                fields={[
+                  ["Area", d.colliery?.area],
+                  ["Colliery", d.colliery?.colliery],
+                  ["Grade", d.colliery?.grade],
+                  ["Size", d.colliery?.size],
+                  ["STC Distance", d.colliery?.stcDistance],
+                  ["GCV", d.colliery?.gcv],
+                ]}
+              />
+              <MaterialCard material={d.material} />
+              {d.particulars && d.particulars.length > 0 && <PricingTable particulars={d.particulars} />}
+              {/* Payment Totals hidden per user request */}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* ════════════════════════════════════════════

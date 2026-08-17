@@ -10,7 +10,7 @@ export default function InvoicePage({ state, setState }) {
   const handleFiles = useCallback(
     async (files) => {
       if (files.length === 0) {
-        setState((s) => ({ ...s, error: "Sirf PDF file upload karein." }));
+        setState((s) => ({ ...s, error: "Please upload only PDF files." }));
         return;
       }
 
@@ -37,7 +37,7 @@ export default function InvoicePage({ state, setState }) {
         setState((s) => ({
           ...s,
           loading: false,
-          error: "PDF read nahi ho payi. File corrupt, password-protected, ya format alag hai. (" + (err?.message ?? "unknown error") + ")",
+          error: "Failed to read PDF. File might be corrupt, password-protected, or in a different format. (" + (err?.message ?? "unknown error") + ")",
         }));
       }
     },
@@ -84,14 +84,48 @@ export default function InvoicePage({ state, setState }) {
       </div>
 
       {view === "drop" && (
-        <Dropzone
-          title="Invoice PDF yahan drop karein"
-          icon="📄"
-          onFiles={handleFiles}
-          loading={loading}
-          loadingName={loadingName}
-          error={error}
-        />
+        <>
+          <Dropzone
+            onFiles={handleFiles}
+            loading={loading}
+            loadingName={loadingName}
+            error={error}
+            title="Upload Invoice PDF"
+            icon="📑"
+          />
+          <div className="table-card" style={{ marginTop: 40, opacity: 0.6, pointerEvents: "none" }}>
+            <div className="table-header">
+              <div className="table-title">Data Preview (Upload PDF to populate)</div>
+            </div>
+            <div className="table-scroll" style={{ overflowX: "auto" }}>
+              <table className="stable" style={{ minWidth: 1200 }}>
+                <thead>
+                  <tr>
+                    <th className="num-h">#</th>
+                    <th>INVOICE NO</th>
+                    <th>INVOICE DATE</th>
+                    <th>IRN</th>
+                    <th>BUYER NAME</th>
+                    <th>BUYER GSTIN</th>
+                    <th>SUPPLIER NAME</th>
+                    <th>E-WAY BILL NO</th>
+                    <th>VEHICLE NO</th>
+                    <th>QUANTITY</th>
+                    <th>TOTAL AMOUNT</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colSpan="12" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
+                      Upload a PDF to view extracted data
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
       {view === "results" && data && (

@@ -127,8 +127,16 @@ export async function extractSECLData(file) {
   
   fullText = fullText.replace(/\s+/g,' ').trim();
   
+  if (!fullText.toUpperCase().includes("INTIMATION") && !fullText.toUpperCase().includes("SOUTH EASTERN COALFIELDS")) {
+    throw new Error("Invalid Format: Uploaded file is not a SECL Intimation PDF.");
+  }
+
   const meta = parseMeta(fullText);
   const items = parseTable(allItems);
+
+  if (items.length === 0) {
+    throw new Error("Invalid Format: Uploaded file is not a valid SECL Intimation PDF (No table data found).");
+  }
 
   return { meta, items, rawText: fullText };
 }

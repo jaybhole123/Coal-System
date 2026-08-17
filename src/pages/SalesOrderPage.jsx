@@ -13,7 +13,7 @@ export default function SalesOrderPage({ state, setState }) {
   const handleFiles = useCallback(
     async (files) => {
       if (files.length === 0) {
-        setState((s) => ({ ...s, error: "Sirf PDF file upload karein." }));
+        setState((s) => ({ ...s, error: "Please upload only PDF files." }));
         return;
       }
 
@@ -41,7 +41,7 @@ export default function SalesOrderPage({ state, setState }) {
           ...s,
           loading: false,
           error:
-            "PDF read nahi ho payi. File corrupt, password-protected, ya format alag hai. (" +
+            "Failed to read PDF. File might be corrupt, password-protected, or in a different format. (" +
             (err?.message ?? "unknown error") +
             ")",
         }));
@@ -102,14 +102,46 @@ export default function SalesOrderPage({ state, setState }) {
   return (
     <div>
       {view === "drop" && (
-        <Dropzone
-          onFiles={handleFiles}
-          loading={loading}
-          loadingName={loadingName}
-          error={error}
-          title="Upload Sales Order PDF"
-          icon="📄"
-        />
+        <>
+          <Dropzone
+            onFiles={handleFiles}
+            loading={loading}
+            loadingName={loadingName}
+            error={error}
+            title="Upload Sales Order PDF"
+            icon="📄"
+          />
+          <div className="table-card" style={{ marginTop: 40, opacity: 0.6, pointerEvents: "none" }}>
+            <div className="table-header">
+              <div className="table-title">Data Preview (Upload PDF to populate)</div>
+            </div>
+            <div className="table-scroll" style={{ overflowX: "auto" }}>
+              <table className="stable" style={{ minWidth: 1200 }}>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Area</th>
+                    <th>Sales Order Number</th>
+                    <th>Sales Order Valid From</th>
+                    <th>Sales Order Valid To</th>
+                    <th>Quantity</th>
+                    <th className="num">SO Value(Grand Total)</th>
+                    <th className="num">Rate Per TE(INR)</th>
+                    <th className="num">Amount(INR)</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colSpan="10" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
+                      Upload a PDF to view extracted data
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
       {view === "results" && data && (
         <SalesOrderResults

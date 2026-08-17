@@ -72,12 +72,8 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
                 <th>Name</th>
                 <th>Area</th>
                 <th>Sales Order Number</th>
-                <th>Sales Order Date</th>
                 <th>Sales Order Valid From</th>
                 <th>Sales Order Valid To</th>
-                <th>Mine</th>
-                <th>Material Description</th>
-                <th>HSN Code</th>
                 <th>Quantity</th>
                 <th className="num">SO Value(Grand Total)</th>
                 <th className="num">Rate Per TE(INR)</th>
@@ -93,12 +89,8 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
                     <td>{summaryRow.name}</td>
                     <td>{summaryRow.area}</td>
                     <td>{summaryRow.sales_order_number}</td>
-                    <td>{summaryRow.sales_order_date}</td>
                     <td>{summaryRow.sales_order_valid_from}</td>
                     <td>{summaryRow.sales_order_valid_to}</td>
-                    <td>{summaryRow.mine}</td>
-                    <td>{summaryRow.material_description}</td>
-                    <td>{summaryRow.hsn_code}</td>
                     <td>{summaryRow.quantity}</td>
                     <td className="num">{summaryRow.so_value_grand_total}</td>
                     <td className="num">{summaryRow.rate_per_te}</td>

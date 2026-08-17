@@ -66,6 +66,11 @@ function num(str) {
    Main parser
 ───────────────────────────────────────────── */
 export function parsePaymentAdvice(rows) {
+  const fullText = rows.join(" ").toUpperCase();
+  if (!fullText.includes("PAYMENT ADVICE")) {
+    throw new Error("Invalid Format: Uploaded file is not a Payment Advice PDF.");
+  }
+
   const get = (label) => afterLabel(findRow(rows, label), label);
 
   const areaOffice = get("Area Office");
@@ -95,6 +100,10 @@ export function parsePaymentAdvice(rows) {
     const matches = [...gstinRow.matchAll(/GSTIN\s*:\s*(\S+)/g)];
     receiverGstin = matches[0]?.[1] ?? null;
     consigneeGstin = matches[1]?.[1] ?? null;
+  }
+  
+  if (!consigneeGstin && consigneeCustomerCode && consigneeCustomerCode === receiverCustomerCode) {
+    consigneeGstin = receiverGstin;
   }
 
   // Contract fields
@@ -176,6 +185,10 @@ export function parsePaymentAdvice(rows) {
     findRow(rows, "Total Value in Words"),
     "Total Value in Words"
   );
+
+  if (particulars.length === 0 && !material && !areaOffice) {
+    throw new Error("Invalid Format: Uploaded file is not a valid Payment Advice PDF (No payment details found).");
+  }
 
   return {
     areaOffice,

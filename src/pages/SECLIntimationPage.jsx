@@ -13,7 +13,7 @@ export default function SECLIntimationPage({ state, setState }) {
   const handleFiles = useCallback(
     async (files) => {
       if (files.length === 0) {
-        setState((s) => ({ ...s, error: "Sirf PDF file upload karein." }));
+        setState((s) => ({ ...s, error: "Please upload only PDF files." }));
         return;
       }
 
@@ -40,7 +40,7 @@ export default function SECLIntimationPage({ state, setState }) {
           ...s,
           loading: false,
           error:
-            "PDF read nahi ho payi. (" +
+            "Failed to read PDF. (" +
             (err?.message ?? "unknown error") +
             ")",
         }));
@@ -109,14 +109,44 @@ export default function SECLIntimationPage({ state, setState }) {
   return (
     <div>
       {view === "drop" && (
-        <Dropzone
-          onFiles={handleFiles}
-          loading={loading}
-          loadingName={loadingName}
-          error={error}
-          title="Upload SECL PDF"
-          icon="📄"
-        />
+        <>
+          <Dropzone
+            onFiles={handleFiles}
+            loading={loading}
+            loadingName={loadingName}
+            error={error}
+            title="Upload SECL PDF"
+            icon="📄"
+          />
+          <div className="summary-section" style={{ marginTop: 40, opacity: 0.6, pointerEvents: "none" }}>
+            <div className="summary-header">
+              <div className="summary-title">Data Preview (Upload PDF to populate)</div>
+            </div>
+            <div className="summary-table-wrap">
+              <table className="stable">
+                <thead>
+                  <tr>
+                    <th>Name of Bidder</th>
+                    <th>Date of Auction</th>
+                    <th>Seller Name</th>
+                    <th>Source Name</th>
+                    <th>Grade / Size</th>
+                    <th>Quantity Allotted</th>
+                    <th>Winning Bid Price Rs/MT</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colSpan="8" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
+                      Upload a PDF to view extracted data
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
       {view === "results" && data && (
         <SECLIntimationResults

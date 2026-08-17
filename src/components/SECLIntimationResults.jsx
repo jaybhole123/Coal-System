@@ -5,9 +5,9 @@ import EditModal from "./EditModal";
 
 export default function SECLIntimationResults({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv, onDeleteRow, onUpdateRow }) {
   const dataArray = Array.isArray(data) ? data : [data];
-  const firstData = dataArray[0];
-  const { meta } = firstData;
-  const allItems = dataArray.flatMap(d => d.items || []);
+  const allItems = dataArray.flatMap(d => 
+    (d.items || []).map(item => ({ ...item, _meta: d.meta }))
+  );
   const [activeTab, setActiveTab] = useState("table");
   const [editingIndex, setEditingIndex] = useState(null);
   const fileInputRef = useRef(null);
@@ -53,9 +53,13 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
               <table className="stable">
                 <thead>
                   <tr>
-                    {COLS.map((c) => (
-                      <th key={c.label}>{c.label}</th>
-                    ))}
+                    <th>Name of Bidder</th>
+                    <th>Date of Auction</th>
+                    <th>Seller Name</th>
+                    <th>Source Name</th>
+                    <th>Grade / Size</th>
+                    <th>Quantity Allotted</th>
+                    <th>Winning Bid Price Rs/MT</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -63,11 +67,13 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
                   {allItems.map((row, i) => {
                     return (
                       <tr key={i}>
-                        {COLS.map((c) => (
-                          <td key={c.label}>
-                            {row[c.label] || "—"}
-                          </td>
-                        ))}
+                        <td>{row._meta?.['Name of Bidder'] || "—"}</td>
+                        <td>{row._meta?.['Date of Auction'] || "—"}</td>
+                        <td>{row["Seller Name"] || "—"}</td>
+                        <td>{row["Source Name"] || "—"}</td>
+                        <td>{row["Grade / Size"] || "—"}</td>
+                        <td>{row["Quantity Allotted"] || "—"}</td>
+                        <td>{row["Winning Bid Price (Rs/MT)"] || "—"}</td>
                         <td style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                           <button
                             style={{
