@@ -4,6 +4,7 @@ import Topbar from "./components/Topbar";
 import Dashboard from "./pages/Dashboard";
 import PaymentAdvicePage from "./pages/PaymentAdvicePage";
 import SalesOrderPage from "./pages/SalesOrderPage";
+import SECLIntimationPage from "./pages/SECLIntimationPage";
 
 // Initial state for the Payment Advice page (lifted here so navigating away preserves data)
 const PAYMENT_INIT = {
@@ -24,10 +25,20 @@ const SALES_ORDER_INIT = {
   fileName: "",
 };
 
+const SECL_INIT = {
+  view: "drop",
+  loading: false,
+  loadingName: "",
+  error: null,
+  data: null,
+  fileName: "",
+};
+
 export default function App() {
   const [activePage, setActivePage] = useState("dashboard");
   const [paymentState, setPaymentState] = useState(PAYMENT_INIT);
   const [salesOrderState, setSalesOrderState] = useState(SALES_ORDER_INIT);
+  const [seclState, setSeclState] = useState(SECL_INIT);
 
   const renderPage = () => {
     switch (activePage) {
@@ -45,6 +56,13 @@ export default function App() {
           <SalesOrderPage
             state={salesOrderState}
             setState={setSalesOrderState}
+          />
+        );
+      case "secl-intimation":
+        return (
+          <SECLIntimationPage
+            state={seclState}
+            setState={setSeclState}
           />
         );
       default:

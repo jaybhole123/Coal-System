@@ -1,13 +1,13 @@
 import { useCallback } from "react";
 import Dropzone from "../components/Dropzone";
-import SalesOrderResults from "../components/SalesOrderResults";
-import { extractTextFromPdf, parseSalesOrder, toCSVSalesOrder, downloadBlob } from "../utils/salesOrderParser";
+import SECLIntimationResults from "../components/SECLIntimationResults";
+import { extractSECLData, toSECLCSV, COLS } from "../utils/seclParser";
+import { downloadBlob } from "../utils/pdfParser";
 
 /**
- * SalesOrderPage — owns the upload/result state for this page.
- * Props: state & setState passed from App so navigating away and back preserves data.
+ * SECLIntimationPage — owns the upload/result state for this page.
  */
-export default function SalesOrderPage({ state, setState }) {
+export default function SECLIntimationPage({ state, setState }) {
   const { view, loading, loadingName, error, data, fileName } = state;
 
   const handleFiles = useCallback(
@@ -24,8 +24,7 @@ export default function SalesOrderPage({ state, setState }) {
       try {
         const results = await Promise.all(
           files.map(async (file) => {
-            const text = await extractTextFromPdf(file);
-            return parseSalesOrder(text);
+            return extractSECLData(file);
           })
         );
         setState((s) => {
@@ -41,7 +40,7 @@ export default function SalesOrderPage({ state, setState }) {
           ...s,
           loading: false,
           error:
-            "PDF read nahi ho payi. File corrupt, password-protected, ya format alag hai. (" +
+            "PDF read nahi ho payi. (" +
             (err?.message ?? "unknown error") +
             ")",
         }));
@@ -51,16 +50,17 @@ export default function SalesOrderPage({ state, setState }) {
   );
 
   const handleReset = () =>
-    setState({ view: "drop", loading: false, loadingName: "", error: null, data: null, fileName: "" });
+    setState((s) => ({ ...s, view: "drop", loading: false, loadingName: "", error: null }));
 
   const handleExportJson = () => {
     if (!data) return;
-    downloadBlob(JSON.stringify(data, null, 2), fileName.replace(/\.pdf$/i, "") + "_SO.json", "application/json");
+    downloadBlob(JSON.stringify(data, null, 2), fileName.replace(/\.pdf$/i, "") + "_secl.json", "application/json");
   };
 
   const handleExportCsv = () => {
     if (!data) return;
-    downloadBlob(toCSVSalesOrder(data), fileName.replace(/\.pdf$/i, "") + "_SO.csv", "text/csv");
+    const allItems = Array.isArray(data) ? data.flatMap(d => d.items || []) : data.items;
+    downloadBlob(toSECLCSV(COLS, allItems), fileName.replace(/\.pdf$/i, "") + "_secl.csv", "text/csv");
   };
 
   return (
@@ -71,12 +71,12 @@ export default function SalesOrderPage({ state, setState }) {
           loading={loading}
           loadingName={loadingName}
           error={error}
-          title="Upload Sales Order PDF"
+          title="Upload SECL PDF"
           icon="📄"
         />
       )}
       {view === "results" && data && (
-        <SalesOrderResults
+        <SECLIntimationResults
           data={data}
           fileName={fileName}
           onReset={handleReset}

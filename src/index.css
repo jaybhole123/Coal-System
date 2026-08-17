@@ -785,9 +785,6 @@ body {
 .stable td.text-cell {
   font-family: var(--font-body);
   font-size: 13px;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

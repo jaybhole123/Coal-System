@@ -6,7 +6,8 @@ const NAV = [
     items: [
       { id: "dashboard", icon: "⊞", label: "Dashboard" },
       { id: "payment-advice", icon: "⛃", label: "Payment Advice", badge: "PI" },
-      { id: "sales-order", icon: "📄", label: "Sales Order", badge: "SECL" },
+      { id: "sales-order", icon: "📄", label: "Sales Order", badge: "DO" },
+      { id: "secl-intimation", icon: "📄", label: "SECL Intimation", badge: "SECL" },
     ],
   },
 ];

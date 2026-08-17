@@ -144,29 +144,30 @@ export function parseSalesOrder(text) {
  * Convert parsed JSON structure into flat CSV
  */
 export function toCSVSalesOrder(data) {
-  const rows = [['Field', 'Value']];
+  const dataArray = Array.isArray(data) ? data : [data];
+  const rows = [['PDF Index', 'Field', 'Value']];
   
-  function flatten(obj, prefix = '') {
+  function flatten(idx, obj, prefix = '') {
     Object.entries(obj).forEach(([k, v]) => {
       if (v && typeof v === 'object' && !Array.isArray(v)) {
-        flatten(v, prefix + k + '.');
+        flatten(idx, v, prefix + k + '.');
       } else if (Array.isArray(v)) {
         v.forEach((item, i) => {
           if (typeof item === 'object') {
             Object.entries(item).forEach(([kk, vv]) => {
-              rows.push([`${prefix}${k}[${i}].${kk}`, vv]);
+              rows.push([idx + 1, `${prefix}${k}[${i}].${kk}`, vv]);
             });
           } else {
-            rows.push([`${prefix}${k}[${i}]`, item]);
+            rows.push([idx + 1, `${prefix}${k}[${i}]`, item]);
           }
         });
       } else {
-        rows.push([prefix + k, v]);
+        rows.push([idx + 1, prefix + k, v]);
       }
     });
   }
   
-  flatten(data);
+  dataArray.forEach((d, i) => flatten(i, d));
   return rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
 }
 

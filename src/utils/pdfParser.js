@@ -198,26 +198,29 @@ export function parsePaymentAdvice(rows) {
    Export helpers
 ───────────────────────────────────────────── */
 export function toCSV(data) {
-  const rows = [["Section", "Field", "Value"]];
-  const push = (section, field, value) => rows.push([section, field, value ?? ""]);
+  const dataArray = Array.isArray(data) ? data : [data];
+  const rows = [["PDF Index", "Section", "Field", "Value"]];
+  const push = (idx, section, field, value) => rows.push([idx + 1, section, field, value ?? ""]);
 
-  push("Header", "Area Office", data.areaOffice);
-  push("Receiver", "Customer Code", data.receiver.customerCode);
-  push("Receiver", "Customer Name", data.receiver.customerName);
-  push("Receiver", "GSTIN", data.receiver.gstin);
-  push("Consignee", "Customer Code", data.consignee.customerCode);
-  push("Consignee", "Customer Name", data.consignee.customerName);
-  push("Consignee", "GSTIN", data.consignee.gstin);
-  Object.entries(data.contract).forEach(([k, v]) => push("Contract", k, v));
-  Object.entries(data.colliery).forEach(([k, v]) => push("Colliery", k, v));
-  if (data.material) Object.entries(data.material).forEach(([k, v]) => push("Material", k, v));
-  data.particulars.forEach((p) =>
-    push("Particulars", p.label, `rate:${p.rate ?? ""} amount:${p.amount ?? ""}`)
-  );
-  push("Totals", "Grand Total incl. EMD", data.totals.grandTotal);
-  push("Totals", "EMD Deduction", data.totals.emdDeduction);
-  push("Totals", "Requisite Payment", data.totals.requisitePayment);
-  push("Totals", "Amount in Words", data.totalValueWords);
+  dataArray.forEach((d, i) => {
+    push(i, "Header", "Area Office", d.areaOffice);
+    push(i, "Receiver", "Customer Code", d.receiver.customerCode);
+    push(i, "Receiver", "Customer Name", d.receiver.customerName);
+    push(i, "Receiver", "GSTIN", d.receiver.gstin);
+    push(i, "Consignee", "Customer Code", d.consignee.customerCode);
+    push(i, "Consignee", "Customer Name", d.consignee.customerName);
+    push(i, "Consignee", "GSTIN", d.consignee.gstin);
+    Object.entries(d.contract).forEach(([k, v]) => push(i, "Contract", k, v));
+    Object.entries(d.colliery).forEach(([k, v]) => push(i, "Colliery", k, v));
+    if (d.material) Object.entries(d.material).forEach(([k, v]) => push(i, "Material", k, v));
+    d.particulars.forEach((p) =>
+      push(i, "Particulars", p.label, `rate:${p.rate ?? ""} amount:${p.amount ?? ""}`)
+    );
+    push(i, "Totals", "Grand Total incl. EMD", d.totals.grandTotal);
+    push(i, "Totals", "EMD Deduction", d.totals.emdDeduction);
+    push(i, "Totals", "Requisite Payment", d.totals.requisitePayment);
+    push(i, "Totals", "Amount in Words", d.totalValueWords);
+  });
 
   return rows
     .map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","))

@@ -10,26 +10,31 @@ import { extractRows, parsePaymentAdvice, toCSV, downloadBlob } from "../utils/p
 export default function PaymentAdvicePage({ state, setState }) {
   const { view, loading, loadingName, error, data, fileName } = state;
 
-  const handleFile = useCallback(
-    async (file) => {
-      if (
-        file.type !== "application/pdf" &&
-        !file.name.toLowerCase().endsWith(".pdf")
-      ) {
+  const handleFiles = useCallback(
+    async (files) => {
+      if (files.length === 0) {
         setState((s) => ({ ...s, error: "Sirf PDF file upload karein." }));
         return;
       }
 
       setState((s) => ({
-        ...s, error: null, loading: true, loadingName: file.name,
+        ...s, error: null, loading: true, loadingName: files.length > 1 ? `${files.length} files` : files[0].name,
       }));
 
       try {
-        const rows = await extractRows(file);
-        const parsed = parsePaymentAdvice(rows);
-        setState((s) => ({
-          ...s, loading: false, data: parsed, fileName: file.name, view: "results",
-        }));
+        const results = await Promise.all(
+          files.map(async (file) => {
+            const rows = await extractRows(file);
+            return parsePaymentAdvice(rows);
+          })
+        );
+        setState((s) => {
+          const newData = s.data && Array.isArray(s.data) ? [...s.data, ...results] : results;
+          const newFileName = s.fileName ? s.fileName + ", " + (files.length > 1 ? `${files.length} files` : files[0].name) : (files.length > 1 ? `${files.length}_files` : files[0].name);
+          return {
+            ...s, loading: false, data: newData, fileName: newFileName, view: "results",
+          };
+        });
       } catch (err) {
         console.error(err);
         setState((s) => ({
@@ -62,10 +67,12 @@ export default function PaymentAdvicePage({ state, setState }) {
     <div>
       {view === "drop" && (
         <Dropzone
-          onFile={handleFile}
+          onFiles={handleFiles}
           loading={loading}
           loadingName={loadingName}
           error={error}
+          title="Upload Payment Advice PDF"
+          icon="⛃"
         />
       )}
       {view === "results" && data && (
@@ -73,6 +80,7 @@ export default function PaymentAdvicePage({ state, setState }) {
           data={data}
           fileName={fileName}
           onReset={handleReset}
+          onAddFiles={handleFiles}
           onExportJson={handleExportJson}
           onExportCsv={handleExportCsv}
         />

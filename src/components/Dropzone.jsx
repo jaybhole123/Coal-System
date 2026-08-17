@@ -9,14 +9,14 @@ import { useRef } from "react";
  *   loadingName     — string, filename currently being parsed
  *   error           — string | null, error message to show
  */
-export default function Dropzone({ onFile, loading, loadingName, error, title = "Payment Advice PDF yahan drop karein", icon = "⛃" }) {
+export default function Dropzone({ onFiles, loading, loadingName, error, title = "Payment Advice PDF yahan drop karein", icon = "⛃" }) {
   const inputRef = useRef(null);
 
   const handleDrop = (e) => {
     e.preventDefault();
     e.currentTarget.classList.remove("drag");
-    const file = e.dataTransfer.files?.[0];
-    if (file) onFile(file);
+    const files = Array.from(e.dataTransfer.files || []).filter(f => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
+    if (files.length > 0) onFiles(files);
   };
 
   const handleDragOver = (e) => {
@@ -31,9 +31,9 @@ export default function Dropzone({ onFile, loading, loadingName, error, title = 
   const handleClick = () => inputRef.current?.click();
 
   const handleChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) onFile(file);
-    // reset so the same file can be re-selected
+    const files = Array.from(e.target.files || []).filter(f => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
+    if (files.length > 0) onFiles(files);
+    // reset so the same files can be re-selected
     e.target.value = "";
   };
 
@@ -55,6 +55,7 @@ export default function Dropzone({ onFile, loading, loadingName, error, title = 
         id="fileInput"
         type="file"
         accept="application/pdf,.pdf"
+        multiple
         hidden
         onChange={handleChange}
       />
