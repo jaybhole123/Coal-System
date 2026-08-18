@@ -3,6 +3,7 @@ import { InfoCard, MaterialCard } from "./Cards";
 import PricingTable from "./PricingTable";
 import { INR, display } from "../utils/format";
 import EditModal from "./EditModal";
+import { exportToExcel, exportToPDF } from "../utils/exportHelpers";
 
 /**
  * Full results view — shown after a PDF is successfully parsed.
@@ -54,6 +55,44 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
     requisitePayment: d.totals?.requisitePayment !== null && d.totals?.requisitePayment !== undefined ? `₹ ${INR(d.totals.requisitePayment)}` : "—",
   });
 
+  const columnsForExport = [
+    { key: "customerCode", label: "Cust. Code" },
+    { key: "customerName", label: "Cust. Name" },
+    { key: "gstin", label: "GSTIN" },
+    { key: "areaOffice", label: "Area Office" },
+    { key: "salesDocNo", label: "Sales Doc" },
+    { key: "validToDate", label: "Valid To" },
+    { key: "salesOrderDate", label: "SO Date" },
+    { key: "grade", label: "Grade" },
+    { key: "paymentDueDate", label: "Due Date" },
+    { key: "gcv", label: "GCV" },
+    { key: "auctionDateRef", label: "Auction Date" },
+    { key: "area", label: "Area" },
+    { key: "materialCode", label: "Mat. Code" },
+    { key: "description", label: "Description" },
+    { key: "quantity", label: "Qty" },
+    { key: "requisitePayment", label: "Req. Payment" }
+  ];
+
+  const handleExportExcel = () => {
+    const formatted = dataArray.map(d => {
+      const row = buildSummaryRow(d);
+      // clean formatting characters like currency symbols
+      row.requisitePayment = row.requisitePayment.replace(/[₹\s,]/g, "");
+      return row;
+    });
+    exportToExcel(formatted, columnsForExport, fileName || "payment_advices");
+  };
+
+  const handleExportPdf = () => {
+    const formatted = dataArray.map(d => {
+      const row = buildSummaryRow(d);
+      row.requisitePayment = row.requisitePayment.replace(/[₹\s,]/g, "");
+      return row;
+    });
+    exportToPDF(formatted, columnsForExport, fileName || "payment_advices", "Payment Advice Summary");
+  };
+
   return (
     <section id="results">
       {/* ── Action bar ── */}
@@ -62,7 +101,46 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
           <div className="results-file" id="resFileName">{fileName}</div>
           <div className="results-hint">Extraction complete</div>
         </div>
-        <div className="results-actions">
+        <div className="results-actions" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <button 
+            className="btn ghost" 
+            onClick={handleExportExcel} 
+            style={{ 
+              borderColor: "#107c41", 
+              color: "#107c41", 
+              display: "inline-flex", 
+              alignItems: "center", 
+              gap: "6px",
+              background: "rgba(16, 124, 65, 0.04)"
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="8" y1="13" x2="16" y2="13"></line>
+              <line x1="8" y1="17" x2="16" y2="17"></line>
+            </svg>
+            EXCEL
+          </button>
+          <button 
+            className="btn ghost" 
+            onClick={handleExportPdf}
+            style={{ 
+              borderColor: "#d6251b", 
+              color: "#d6251b", 
+              display: "inline-flex", 
+              alignItems: "center", 
+              gap: "6px",
+              background: "rgba(214, 37, 27, 0.04)"
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <path d="M9 15h1a2 2 0 0 0 0-4H9v4Z"></path>
+            </svg>
+            PDF
+          </button>
           <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept=".pdf" />
           <button className="btn" onClick={() => fileInputRef.current?.click()}>
             ADD PDF

@@ -2,6 +2,7 @@ import { InfoCard } from "./Cards";
 import { display } from "../utils/format";
 import { useState, useRef } from "react";
 import EditModal from "./EditModal";
+import { exportToExcel, exportToPDF } from "../utils/exportHelpers";
 
 export default function SalesOrderResults({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv, onDeleteRow, onUpdateRow }) {
   const [editingIndex, setEditingIndex] = useState(null);
@@ -41,6 +42,28 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
     };
   };
 
+  const columnsForExport = [
+    { key: "name", label: "Name" },
+    { key: "sales_order_number", label: "Sales Order Number" },
+    { key: "sales_order_valid_from", label: "Sales Order Valid From" },
+    { key: "sales_order_valid_to", label: "Sales Order Valid To" },
+    { key: "office_area", label: "Office Area" },
+    { key: "quantity", label: "Quantity" },
+    { key: "mine", label: "Mine" },
+    { key: "rate_per_te", label: "Rate Per TE(INR)" },
+    { key: "amount", label: "Amount(INR)" }
+  ];
+
+  const handleExportExcel = () => {
+    const formatted = dataArray.map(d => buildSummaryRow(d));
+    exportToExcel(formatted, columnsForExport, fileName || "sales_orders");
+  };
+
+  const handleExportPdf = () => {
+    const formatted = dataArray.map(d => buildSummaryRow(d));
+    exportToPDF(formatted, columnsForExport, fileName || "sales_orders", "Sales Orders Summary");
+  };
+
   return (
     <section id="sales-order-results">
       {/* ── Action bar ── */}
@@ -49,7 +72,46 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
           <div className="results-file">{fileName}</div>
           <div className="results-hint">Sales Order Extracted</div>
         </div>
-        <div className="results-actions">
+        <div className="results-actions" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <button 
+            className="btn ghost" 
+            onClick={handleExportExcel} 
+            style={{ 
+              borderColor: "#107c41", 
+              color: "#107c41", 
+              display: "inline-flex", 
+              alignItems: "center", 
+              gap: "6px",
+              background: "rgba(16, 124, 65, 0.04)"
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="8" y1="13" x2="16" y2="13"></line>
+              <line x1="8" y1="17" x2="16" y2="17"></line>
+            </svg>
+            EXCEL
+          </button>
+          <button 
+            className="btn ghost" 
+            onClick={handleExportPdf}
+            style={{ 
+              borderColor: "#d6251b", 
+              color: "#d6251b", 
+              display: "inline-flex", 
+              alignItems: "center", 
+              gap: "6px",
+              background: "rgba(214, 37, 27, 0.04)"
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <path d="M9 15h1a2 2 0 0 0 0-4H9v4Z"></path>
+            </svg>
+            PDF
+          </button>
           <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept=".pdf" />
           <button className="btn" onClick={() => fileInputRef.current?.click()}>
             ADD PDF

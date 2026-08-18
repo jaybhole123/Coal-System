@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { COLS } from "../utils/seclParser";
 import { InfoCard } from "./Cards";
 import EditModal from "./EditModal";
+import { exportToExcel, exportToPDF } from "../utils/exportHelpers";
 
 export default function SECLIntimationResults({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv, onDeleteRow, onUpdateRow }) {
   const dataArray = Array.isArray(data) ? data : [data];
@@ -27,6 +28,42 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
     e.target.value = "";
   };
 
+  const columnsForExport = [
+    { key: "bidderName", label: "Name of Bidder" },
+    { key: "auctionDate", label: "Date of Auction" },
+    { key: "sellerName", label: "Seller Name" },
+    { key: "sourceName", label: "Source Name" },
+    { key: "gradeSize", label: "Grade / Size" },
+    { key: "qtyAllotted", label: "Quantity Allotted" },
+    { key: "bidPrice", label: "Winning Bid Price Rs/MT" }
+  ];
+
+  const handleExportExcel = () => {
+    const formatted = allItems.map(row => ({
+      bidderName: row._meta?.['Name of Bidder'] || "",
+      auctionDate: row._meta?.['Date of Auction'] || "",
+      sellerName: row["Seller Name"] || "",
+      sourceName: row["Source Name"] || "",
+      gradeSize: row["Grade / Size"] || "",
+      qtyAllotted: row["Quantity Allotted"] || "",
+      bidPrice: row["Winning Bid Price (Rs/MT)"] || ""
+    }));
+    exportToExcel(formatted, columnsForExport, fileName || "secl_intimation");
+  };
+
+  const handleExportPdf = () => {
+    const formatted = allItems.map(row => ({
+      bidderName: row._meta?.['Name of Bidder'] || "",
+      auctionDate: row._meta?.['Date of Auction'] || "",
+      sellerName: row["Seller Name"] || "",
+      sourceName: row["Source Name"] || "",
+      gradeSize: row["Grade / Size"] || "",
+      qtyAllotted: row["Quantity Allotted"] || "",
+      bidPrice: row["Winning Bid Price (Rs/MT)"] || ""
+    }));
+    exportToPDF(formatted, columnsForExport, fileName || "secl_intimation", "SECL Intimation Summary");
+  };
+
   return (
     <section id="results">
       {/* ── Action bar ── */}
@@ -35,7 +72,46 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
           <div className="results-file" id="resFileName">{fileName}</div>
           <div className="results-hint">SECL Intimation Extracted</div>
         </div>
-        <div className="results-actions">
+        <div className="results-actions" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <button 
+            className="btn ghost" 
+            onClick={handleExportExcel} 
+            style={{ 
+              borderColor: "#107c41", 
+              color: "#107c41", 
+              display: "inline-flex", 
+              alignItems: "center", 
+              gap: "6px",
+              background: "rgba(16, 124, 65, 0.04)"
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="8" y1="13" x2="16" y2="13"></line>
+              <line x1="8" y1="17" x2="16" y2="17"></line>
+            </svg>
+            EXCEL
+          </button>
+          <button 
+            className="btn ghost" 
+            onClick={handleExportPdf}
+            style={{ 
+              borderColor: "#d6251b", 
+              color: "#d6251b", 
+              display: "inline-flex", 
+              alignItems: "center", 
+              gap: "6px",
+              background: "rgba(214, 37, 27, 0.04)"
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <path d="M9 15h1a2 2 0 0 0 0-4H9v4Z"></path>
+            </svg>
+            PDF
+          </button>
           <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept=".pdf" />
           <button className="btn" onClick={() => fileInputRef.current?.click()}>
             ADD PDF
