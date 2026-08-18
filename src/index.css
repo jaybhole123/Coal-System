@@ -753,7 +753,6 @@ body {
   text-transform: uppercase;
   color: var(--ember-bright);
   border: 1px solid var(--line);
-  user-select: none;
 }
 .stable thead th.num-h { text-align: right; }
 

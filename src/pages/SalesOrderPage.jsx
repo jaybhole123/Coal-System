@@ -79,22 +79,47 @@ export default function SalesOrderPage({ state, setState }) {
       const newData = [...s.data];
       const item = { ...newData[index] };
       
-      // Update details
-      item.details = {
-        ...item.details,
-        buyerCode: updatedRow.buyerCode,
-        buyerName: updatedRow.buyerName,
-        saleOrderNo: updatedRow.saleOrderNo,
-        saleOrderDate: updatedRow.saleOrderDate,
-        doDate: updatedRow.doDate,
-        bgNo: updatedRow.bgNo,
-      };
-
-      // Since Sales Order has a flat array of items, we'll assume there's 1 item for the row or we just update the first item for simplicity (if it's a summary row).
-      // Wait, Sales Order has multiple items per PDF! Let's check how the summary row is rendered.
-      // Actually, Sales Order Results renders `item` inside a single row. But `data` is `[{ details, items }]`.
-      // Let's defer mapping the items here until we see how SalesOrderResults handles it. We'll just pass updatedRow back directly for now.
+      // Update nested objects safely
+      item.receiver = { ...item.receiver, name: updatedRow.name };
+      item.sold_to_party = { ...item.sold_to_party, name: updatedRow.name };
+      item.company = { ...item.company, office_area: updatedRow.office_area };
+      item.mine_info = { ...item.mine_info, mine: updatedRow.mine };
       
+      item.order_info = { 
+        ...item.order_info, 
+        sales_order_number: updatedRow.sales_order_number,
+        sales_order_valid_from: updatedRow.sales_order_valid_from,
+        sales_order_valid_to: updatedRow.sales_order_valid_to
+      };
+      
+      if (item.line_items && item.line_items.length > 0) {
+        item.line_items[0] = {
+          ...item.line_items[0],
+          quantity: updatedRow.quantity,
+          mine: updatedRow.mine
+        };
+      }
+      
+      // Find Requisite Payment row to update
+      if (item.pricing && item.pricing.length > 0) {
+        const reqIndex = item.pricing.findIndex(p => p.description?.toLowerCase().includes("requisite payment"));
+        if (reqIndex !== -1) {
+          item.pricing[reqIndex] = {
+            ...item.pricing[reqIndex],
+            rate_per_te: updatedRow.rate_per_te,
+            amount: updatedRow.amount
+          };
+        } else {
+          // Fallback, update the first pricing item
+          item.pricing[0] = {
+            ...item.pricing[0],
+            rate_per_te: updatedRow.rate_per_te,
+            amount: updatedRow.amount
+          };
+        }
+      }
+
+      newData[index] = item;
       return { ...s, data: newData };
     });
   };
@@ -120,12 +145,12 @@ export default function SalesOrderPage({ state, setState }) {
                 <thead>
                   <tr>
                     <th>Name</th>
-                    <th>Area</th>
                     <th>Sales Order Number</th>
                     <th>Sales Order Valid From</th>
                     <th>Sales Order Valid To</th>
+                    <th>Office Area</th>
                     <th>Quantity</th>
-                    <th className="num">SO Value(Grand Total)</th>
+                    <th>Mine</th>
                     <th className="num">Rate Per TE(INR)</th>
                     <th className="num">Amount(INR)</th>
                     <th>Action</th>
@@ -152,6 +177,7 @@ export default function SalesOrderPage({ state, setState }) {
           onExportJson={handleExportJson}
           onExportCsv={handleExportCsv}
           onDeleteRow={handleDeleteRow}
+          onUpdateRow={handleUpdateRow}
         />
       )}
     </div>

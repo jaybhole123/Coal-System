@@ -26,21 +26,20 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
     setEditingIndex(null);
   };
 
-  const buildSummaryRow = (d) => ({
-    name: display(d.receiver?.name || d.sold_to_party?.name),
-    area: display(d.mine_info?.area),
-    sales_order_number: display(d.order_info?.sales_order_number),
-    sales_order_date: display(d.order_info?.sales_order_date),
-    sales_order_valid_from: display(d.order_info?.sales_order_valid_from),
-    sales_order_valid_to: display(d.order_info?.sales_order_valid_to),
-    mine: display(d.mine_info?.mine),
-    material_description: display(d.line_items?.[0]?.material_description),
-    hsn_code: display(d.line_items?.[0]?.hsn_code),
-    quantity: display(d.line_items?.[0]?.quantity),
-    so_value_grand_total: display(d.totals?.so_value_grand_total),
-    rate_per_te: display(d.pricing?.find(p => p.description?.includes("Basic Price"))?.rate_per_te || d.pricing?.[0]?.rate_per_te),
-    amount: display(d.pricing?.find(p => p.description?.includes("Basic Price"))?.amount || d.pricing?.[0]?.amount),
-  });
+  const buildSummaryRow = (d) => {
+    const reqPay = d.pricing?.find(p => p.description?.toLowerCase().includes("requisite payment"));
+    return {
+      name: display(d.sold_to_party?.name || d.receiver?.name),
+      sales_order_number: display(d.order_info?.sales_order_number),
+      sales_order_valid_from: display(d.order_info?.sales_order_valid_from),
+      sales_order_valid_to: display(d.order_info?.sales_order_valid_to),
+      office_area: display(d.company?.office_area || d.mine_info?.area),
+      quantity: display(d.line_items?.[0]?.quantity || d.mine_info?.quantity_words),
+      mine: display(d.mine_info?.mine || d.line_items?.[0]?.mine),
+      rate_per_te: display(reqPay?.rate_per_te || d.pricing?.[0]?.rate_per_te),
+      amount: display(reqPay?.amount || d.totals?.requisite_payment || d.pricing?.[0]?.amount),
+    };
+  };
 
   return (
     <section id="sales-order-results">
@@ -70,12 +69,12 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Area</th>
                 <th>Sales Order Number</th>
                 <th>Sales Order Valid From</th>
                 <th>Sales Order Valid To</th>
+                <th>Office Area</th>
                 <th>Quantity</th>
-                <th className="num">SO Value(Grand Total)</th>
+                <th>Mine</th>
                 <th className="num">Rate Per TE(INR)</th>
                 <th className="num">Amount(INR)</th>
                 <th>Action</th>
@@ -87,12 +86,12 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
                 return (
                   <tr key={index}>
                     <td>{summaryRow.name}</td>
-                    <td>{summaryRow.area}</td>
                     <td>{summaryRow.sales_order_number}</td>
                     <td>{summaryRow.sales_order_valid_from}</td>
                     <td>{summaryRow.sales_order_valid_to}</td>
+                    <td>{summaryRow.office_area}</td>
                     <td>{summaryRow.quantity}</td>
-                    <td className="num">{summaryRow.so_value_grand_total}</td>
+                    <td>{summaryRow.mine}</td>
                     <td className="num">{summaryRow.rate_per_te}</td>
                     <td className="num">{summaryRow.amount}</td>
                     <td style={{ display: "flex", gap: "6px", alignItems: "center" }}>
@@ -143,16 +142,12 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
         initialData={editingIndex !== null ? buildSummaryRow(dataArray[editingIndex]) : null}
         columns={[
           { key: "name", label: "Name" },
-          { key: "area", label: "Area" },
           { key: "sales_order_number", label: "Sales Order Number" },
-          { key: "sales_order_date", label: "Sales Order Date" },
           { key: "sales_order_valid_from", label: "Sales Order Valid From" },
           { key: "sales_order_valid_to", label: "Sales Order Valid To" },
-          { key: "mine", label: "Mine" },
-          { key: "material_description", label: "Material Description" },
-          { key: "hsn_code", label: "HSN Code" },
+          { key: "office_area", label: "Office Area" },
           { key: "quantity", label: "Quantity" },
-          { key: "so_value_grand_total", label: "SO Value(Grand Total)" },
+          { key: "mine", label: "Mine" },
           { key: "rate_per_te", label: "Rate Per TE(INR)" },
           { key: "amount", label: "Amount(INR)" },
         ]}
