@@ -136,9 +136,13 @@ export default function PaymentAdvicePage({ state, setState }) {
                     <th>GSTIN</th>
                     <th>Area Office</th>
                     <th>Sales Doc No</th>
+                    <th>Valid to Date</th>
                     <th>Sales Order Date</th>
+                    <th>Grade</th>
                     <th>Payment Due Date</th>
+                    <th>GCV</th>
                     <th>Auction Date &amp; Ref</th>
+                    <th>Area</th>
                     <th>Mat. Code</th>
                     <th>Description</th>
                     <th>Quantity</th>
@@ -148,7 +152,7 @@ export default function PaymentAdvicePage({ state, setState }) {
                 </thead>
                 <tbody>
                   <tr>
-                    <td colSpan="14" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
+                    <td colSpan="18" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
                       Upload a PDF to view extracted data
                     </td>
                   </tr>

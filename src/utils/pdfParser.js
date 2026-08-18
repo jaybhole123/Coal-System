@@ -42,12 +42,39 @@ export async function extractRows(file) {
 /* ─────────────────────────────────────────────
    Field-parsing helpers
 ───────────────────────────────────────────── */
+
+// All known field labels that can appear on the same row in Payment Advice PDFs.
+// Used to stop afterLabel() from bleeding into the next field.
+const KNOWN_LABELS = [
+  "Area Office", "Telephone", "Fax",
+  "Customer Code", "Customer Name", "GSTIN",
+  "Contract Number", "Sales Doc No", "Sales Order Date",
+  "PI Number", "PI Date", "Payment due Date",
+  "Year Month", "Bid ID", "Scheme Name",
+  "Auction Date & Reference", "Contract sign date", "Valid to Date",
+  "Quantity Allocated", "Type of Consumer", "Mode of Transport",
+  "Area", "Colliery", "Grade", "Size", "STC Distance", "GCV",
+  "PCB clearance Date", "Tranche", "Destination",
+];
+
 function afterLabel(row, label) {
   if (!row) return null;
   const idx = row.indexOf(label);
   if (idx === -1) return null;
   let rest = row.slice(idx + label.length);
   rest = rest.replace(/^\s*:\s*/, "").trim();
+  if (!rest) return null;
+
+  // Find the earliest occurrence of another known label in the remaining text
+  let cutoff = rest.length;
+  for (const otherLabel of KNOWN_LABELS) {
+    if (otherLabel === label) continue;
+    const pos = rest.indexOf(otherLabel);
+    if (pos > 0 && pos < cutoff) {
+      cutoff = pos;
+    }
+  }
+  rest = rest.slice(0, cutoff).trim();
   return rest || null;
 }
 

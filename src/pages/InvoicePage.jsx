@@ -105,7 +105,6 @@ export default function InvoicePage({ state, setState }) {
                     <th>INVOICE NO</th>
                     <th>INVOICE DATE</th>
                     <th>IRN</th>
-                    <th>BUYER NAME</th>
                     <th>BUYER GSTIN</th>
                     <th>SUPPLIER NAME</th>
                     <th>E-WAY BILL NO</th>
@@ -117,7 +116,7 @@ export default function InvoicePage({ state, setState }) {
                 </thead>
                 <tbody>
                   <tr>
-                    <td colSpan="12" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
+                    <td colSpan="11" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
                       Upload a PDF to view extracted data
                     </td>
                   </tr>

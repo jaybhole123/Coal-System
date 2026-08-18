@@ -41,9 +41,13 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
     gstin: display(d.receiver?.gstin),
     areaOffice: display(d.areaOffice),
     salesDocNo: display(d.contract?.salesDocNo),
+    validToDate: display(d.contract?.validToDate),
     salesOrderDate: display(d.contract?.salesOrderDate),
+    grade: display(d.colliery?.grade),
     paymentDueDate: display(d.contract?.paymentDueDate),
+    gcv: display(d.colliery?.gcv),
     auctionDateRef: display(d.contract?.auctionDateRef),
+    area: display(d.colliery?.area),
     materialCode: display(d.material?.materialCode),
     description: display(d.material?.description),
     quantity: d.material ? `${d.material.quantity ?? "—"} ${d.material.unit ?? ""}`.trim() : "—",
@@ -67,9 +71,9 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
       </div>
 
       {/* ════════════════════════════════════════════
-          FULL DATA CARDS (Per PDF)
+          FULL DATA CARDS (Per PDF) — hidden per user request
       ════════════════════════════════════════════ */}
-      <div className="results-content">
+      <div className="results-content" style={{ display: "none" }}>
         {dataArray.map((d, index) => (
           <div key={index} style={{ marginBottom: 32 }}>
             <h3 style={{ fontSize: 16, marginBottom: 12, color: "var(--text)" }}>
@@ -158,9 +162,13 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
                 <th>GSTIN</th>
                 <th>Area Office</th>
                 <th>Sales Doc No</th>
+                <th>Valid to Date</th>
                 <th>Sales Order Date</th>
+                <th>Grade</th>
                 <th>Payment Due Date</th>
+                <th>GCV</th>
                 <th>Auction Date &amp; Ref</th>
+                <th>Area</th>
                 <th>Mat. Code</th>
                 <th>Description</th>
                 <th>Quantity</th>
@@ -179,9 +187,13 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
                     <td>{summaryRow.gstin}</td>
                     <td className="text-cell" title={summaryRow.areaOffice}>{summaryRow.areaOffice}</td>
                     <td>{summaryRow.salesDocNo}</td>
+                    <td>{summaryRow.validToDate}</td>
                     <td>{summaryRow.salesOrderDate}</td>
+                    <td>{summaryRow.grade}</td>
                     <td>{summaryRow.paymentDueDate}</td>
+                    <td>{summaryRow.gcv}</td>
                     <td className="text-cell" title={summaryRow.auctionDateRef}>{summaryRow.auctionDateRef}</td>
+                    <td>{summaryRow.area}</td>
                     <td>{summaryRow.materialCode}</td>
                     <td className="text-cell" title={summaryRow.description}>{summaryRow.description}</td>
                     <td>{summaryRow.quantity}</td>
@@ -249,9 +261,13 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
           { key: "gstin", label: "GSTIN" },
           { key: "areaOffice", label: "Area Office" },
           { key: "salesDocNo", label: "Sales Doc No" },
+          { key: "validToDate", label: "Valid to Date" },
           { key: "salesOrderDate", label: "Sales Order Date" },
+          { key: "grade", label: "Grade" },
           { key: "paymentDueDate", label: "Payment Due Date" },
+          { key: "gcv", label: "GCV" },
           { key: "auctionDateRef", label: "Auction Date & Ref" },
+          { key: "area", label: "Area" },
           { key: "materialCode", label: "Material Code" },
           { key: "description", label: "Description" },
           { key: "quantity", label: "Quantity" },
