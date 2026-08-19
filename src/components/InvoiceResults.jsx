@@ -3,7 +3,7 @@ import { INVOICE_COLS } from "../utils/invoiceParser";
 import EditModal from "./EditModal";
 import { exportToExcel, exportToPDF } from "../utils/exportHelpers";
 
-export default function InvoiceResults({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv, onDeleteRow, onUpdateRow }) {
+export default function InvoiceResults({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv, onSave, onDeleteRow, onUpdateRow, onAddManual }) {
   const dataArray = Array.isArray(data) ? data : [data];
   const allItems = dataArray;
   const fileInputRef = useRef(null);
@@ -41,6 +41,20 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
           <div className="results-hint">Invoice Extracted</div>
         </div>
         <div className="results-actions" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <button 
+            className="btn ghost" 
+            onClick={onSave}
+            style={{ 
+              borderColor: "var(--primary)", 
+              color: "var(--primary)", 
+              display: "inline-flex", 
+              alignItems: "center", 
+              gap: "6px",
+              background: "rgba(0, 0, 0, 0.04)"
+            }}
+          >
+            💾 SAVE
+          </button>
           <button 
             className="btn ghost" 
             onClick={handleExportExcel} 
@@ -81,6 +95,9 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
             PDF
           </button>
           <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept=".pdf" />
+          <button className="btn outline" onClick={onAddManual}>
+            + ADD FORM
+          </button>
           <button className="btn" onClick={() => fileInputRef.current?.click()}>
             ADD PDF
           </button>
@@ -101,6 +118,7 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
                     {INVOICE_COLS.map((c) => (
                       <th key={c.key}>{c.label}</th>
                     ))}
+                    <th>Preview</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -114,6 +132,15 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
                             {row[c.key] || "—"}
                           </td>
                         ))}
+                        <td>
+                          {row.pdfUrl ? (
+                            <a href={row.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
+                              View PDF
+                            </a>
+                          ) : (
+                            <span style={{ color: "var(--muted)" }}>-</span>
+                          )}
+                        </td>
                         <td style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                           <button
                             style={{

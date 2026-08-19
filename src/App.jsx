@@ -6,6 +6,11 @@ import PaymentAdvicePage from "./pages/PaymentAdvicePage";
 import SalesOrderPage from "./pages/SalesOrderPage";
 import SECLIntimationPage from "./pages/SECLIntimationPage";
 import InvoicePage from "./pages/InvoicePage";
+import AuctionPage from "./pages/AuctionPage";
+import WorkOrderPage from "./pages/WorkOrderPage";
+import DispatchPage from "./pages/DispatchPage";
+import TransportPaymentPage from "./pages/TransportPaymentPage";
+import RefundLapsePage from "./pages/RefundLapsePage";
 
 // Initial state for the Payment Advice page (lifted here so navigating away preserves data)
 const PAYMENT_INIT = {
@@ -44,17 +49,58 @@ const INVOICE_INIT = {
   fileName: "",
 };
 
+const getInitialState = (key, defaultState) => {
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      let parsed = JSON.parse(saved);
+
+      // Clean up dead blob URLs that were saved to localStorage
+      const cleanBlobs = (obj) => {
+        if (Array.isArray(obj)) {
+          return obj.map(cleanBlobs);
+        } else if (obj !== null && typeof obj === 'object') {
+          const newObj = {};
+          for (let k in obj) {
+            if (k === 'pdfUrl' && typeof obj[k] === 'string' && obj[k].startsWith('blob:')) {
+              newObj[k] = null;
+            } else {
+              newObj[k] = cleanBlobs(obj[k]);
+            }
+          }
+          return newObj;
+        }
+        return obj;
+      };
+
+      parsed = cleanBlobs(parsed);
+
+      return {
+        ...defaultState,
+        view: "results",
+        data: parsed,
+        fileName: "Loaded from LocalStorage",
+      };
+    }
+  } catch (e) {
+    console.error("Failed to load from local storage", e);
+  }
+  return defaultState;
+};
+
 export default function App() {
   const [activePage, setActivePage] = useState("dashboard");
-  const [paymentState, setPaymentState] = useState(PAYMENT_INIT);
-  const [salesOrderState, setSalesOrderState] = useState(SALES_ORDER_INIT);
-  const [seclState, setSeclState] = useState(SECL_INIT);
-  const [invoiceState, setInvoiceState] = useState(INVOICE_INIT);
+  const [paymentState, setPaymentState] = useState(() => getInitialState("payment_advice_data", PAYMENT_INIT));
+  const [salesOrderState, setSalesOrderState] = useState(() => getInitialState("sales_order_data", SALES_ORDER_INIT));
+  const [seclState, setSeclState] = useState(() => getInitialState("secl_data", SECL_INIT));
+  const [invoiceState, setInvoiceState] = useState(() => getInitialState("invoice_data", INVOICE_INIT));
 
   const renderPage = () => {
     switch (activePage) {
       case "dashboard":
         return <Dashboard onNavigate={setActivePage} />;
+      case "auction":
+        return <AuctionPage />;
       case "payment-advice":
         return (
           <PaymentAdvicePage
@@ -83,6 +129,14 @@ export default function App() {
             setState={setInvoiceState}
           />
         );
+      case "work-order":
+        return <WorkOrderPage />;
+      case "dispatch":
+        return <DispatchPage />;
+      case "transport-payment":
+        return <TransportPaymentPage />;
+      case "refund-lapse":
+        return <RefundLapsePage />;
       default:
         return <Dashboard onNavigate={setActivePage} />;
     }

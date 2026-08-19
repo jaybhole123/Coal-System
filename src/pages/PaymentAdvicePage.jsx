@@ -1,6 +1,7 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import Dropzone from "../components/Dropzone";
 import Results from "../components/Results";
+import EditModal from "../components/EditModal";
 import { extractRows, parsePaymentAdvice, toCSV, downloadBlob } from "../utils/pdfParser";
 
 /**
@@ -9,6 +10,45 @@ import { extractRows, parsePaymentAdvice, toCSV, downloadBlob } from "../utils/p
  */
 export default function PaymentAdvicePage({ state, setState }) {
   const { view, loading, loadingName, error, data, fileName } = state;
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleManualAdd = (formData) => {
+    const newItem = {
+      pdfUrl: formData.pdfFile ? URL.createObjectURL(formData.pdfFile) : null,
+      pdfName: formData.pdfFile ? formData.pdfFile.name : "Manual Entry",
+      receiver: { 
+        customerName: formData.customerName,
+        customerCode: formData.customerCode,
+        gstin: formData.gstin
+      },
+      areaOffice: formData.areaOffice,
+      contract: { 
+        salesDocNo: formData.salesDocNo,
+        validToDate: formData.validToDate,
+        salesOrderDate: formData.salesOrderDate,
+        paymentDueDate: formData.paymentDueDate,
+        auctionDateRef: formData.auctionDateRef
+      },
+      material: { 
+        materialCode: formData.materialCode,
+        description: formData.description,
+        quantity: formData.quantity
+      },
+      totals: { requisitePayment: formData.requisitePayment },
+      colliery: { 
+        area: formData.area,
+        grade: formData.grade,
+        gcv: formData.gcv
+      }
+    };
+    setState((s) => ({
+      ...s,
+      data: s.data && Array.isArray(s.data) ? [...s.data, newItem] : [newItem],
+      view: "results",
+      fileName: s.fileName || "Manual Entry"
+    }));
+    setIsModalOpen(false);
+  };
 
   const handleFiles = useCallback(
     async (files) => {
@@ -25,7 +65,10 @@ export default function PaymentAdvicePage({ state, setState }) {
         const results = await Promise.all(
           files.map(async (file) => {
             const rows = await extractRows(file);
-            return parsePaymentAdvice(rows);
+            const parsed = parsePaymentAdvice(rows);
+            parsed.pdfUrl = URL.createObjectURL(file);
+            parsed.pdfName = file.name;
+            return parsed;
           })
         );
         setState((s) => {
@@ -55,7 +98,13 @@ export default function PaymentAdvicePage({ state, setState }) {
 
   const handleExportJson = () => {
     if (!data) return;
-    downloadBlob(JSON.stringify(data, null, 2), fileName.replace(/\.pdf$/i, "") + ".json", "application/json");
+    downloadBlob(JSON.stringify(data, null, 2), fileName.replace(/\.pdf$/i, "") + "_payment_advice.json", "application/json");
+  };
+
+  const handleSave = () => {
+    if (!data) return;
+    localStorage.setItem("payment_advice_data", JSON.stringify(data));
+    alert("Data saved to LocalStorage successfully!");
   };
 
   const handleExportCsv = () => {
@@ -122,6 +171,10 @@ export default function PaymentAdvicePage({ state, setState }) {
             title="Upload Payment Advice"
             icon="💵"
           />
+          <div style={{ textAlign: "center", marginTop: 20 }}>
+            <span style={{ color: "var(--muted)", marginRight: 15, fontSize: "14px" }}>Or enter data manually</span>
+            <button className="btn outline" onClick={() => setIsModalOpen(true)}>+ Add Form</button>
+          </div>
           <div className="summary-section" style={{ marginTop: 40, opacity: 0.6, pointerEvents: "none" }}>
             <div className="summary-header">
               <div className="summary-title">Data Preview (Upload PDF to populate)</div>
@@ -147,12 +200,13 @@ export default function PaymentAdvicePage({ state, setState }) {
                     <th>Description</th>
                     <th>Quantity</th>
                     <th className="num-h">Requisite Payment (INR)</th>
+                    <th>Preview</th>
                     <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td colSpan="18" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
+                    <td colSpan="19" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
                       Upload a PDF to view extracted data
                     </td>
                   </tr>
@@ -170,10 +224,38 @@ export default function PaymentAdvicePage({ state, setState }) {
           onAddFiles={handleFiles}
           onExportJson={handleExportJson}
           onExportCsv={handleExportCsv}
+          onSave={handleSave}
           onDeleteRow={handleDeleteRow}
           onUpdateRow={handleUpdateRow}
+          onAddManual={() => setIsModalOpen(true)}
         />
       )}
+
+      <EditModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleManualAdd}
+        title="Add Manual Entry"
+        initialData={{}}
+        columns={[
+          { key: "customerCode", label: "Customer Code" },
+          { key: "customerName", label: "Customer Name" },
+          { key: "gstin", label: "GSTIN" },
+          { key: "areaOffice", label: "Area Office" },
+          { key: "salesDocNo", label: "Sales Doc No" },
+          { key: "validToDate", label: "Valid to Date" },
+          { key: "salesOrderDate", label: "Sales Order Date" },
+          { key: "grade", label: "Grade" },
+          { key: "paymentDueDate", label: "Payment Due Date" },
+          { key: "gcv", label: "GCV" },
+          { key: "auctionDateRef", label: "Auction Date & Ref" },
+          { key: "area", label: "Area" },
+          { key: "materialCode", label: "Mat. Code" },
+          { key: "description", label: "Description" },
+          { key: "quantity", label: "Quantity" },
+          { key: "requisitePayment", label: "Requisite Payment (INR)" }
+        ]}
+      />
     </div>
   );
 }

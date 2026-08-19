@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import EditModal from "./EditModal";
 import { exportToExcel, exportToPDF } from "../utils/exportHelpers";
 
-export default function SalesOrderResults({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv, onDeleteRow, onUpdateRow }) {
+export default function SalesOrderResults({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv, onSave, onDeleteRow, onUpdateRow, onAddManual }) {
   const [editingIndex, setEditingIndex] = useState(null);
   const fileInputRef = useRef(null);
   
@@ -75,6 +75,20 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
         <div className="results-actions" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <button 
             className="btn ghost" 
+            onClick={onSave}
+            style={{ 
+              borderColor: "var(--primary)", 
+              color: "var(--primary)", 
+              display: "inline-flex", 
+              alignItems: "center", 
+              gap: "6px",
+              background: "rgba(0, 0, 0, 0.04)"
+            }}
+          >
+            💾 SAVE
+          </button>
+          <button 
+            className="btn ghost" 
             onClick={handleExportExcel} 
             style={{ 
               borderColor: "#107c41", 
@@ -113,6 +127,9 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
             PDF
           </button>
           <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept=".pdf" />
+          <button className="btn outline" onClick={onAddManual}>
+            + ADD FORM
+          </button>
           <button className="btn" onClick={() => fileInputRef.current?.click()}>
             ADD PDF
           </button>
@@ -139,6 +156,7 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
                 <th>Mine</th>
                 <th className="num">Rate Per TE(INR)</th>
                 <th className="num">Amount(INR)</th>
+                <th>Preview</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -156,6 +174,15 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
                     <td>{summaryRow.mine}</td>
                     <td className="num">{summaryRow.rate_per_te}</td>
                     <td className="num">{summaryRow.amount}</td>
+                    <td>
+                      {d.pdfUrl ? (
+                        <a href={d.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
+                          View PDF
+                        </a>
+                      ) : (
+                        <span style={{ color: "var(--muted)" }}>-</span>
+                      )}
+                    </td>
                     <td style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                       <button
                         style={{

@@ -1,6 +1,7 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import Dropzone from "../components/Dropzone";
 import SalesOrderResults from "../components/SalesOrderResults";
+import EditModal from "../components/EditModal";
 import { extractTextFromPdf, parseSalesOrder, toCSVSalesOrder, downloadBlob } from "../utils/salesOrderParser";
 
 /**
@@ -9,6 +10,34 @@ import { extractTextFromPdf, parseSalesOrder, toCSVSalesOrder, downloadBlob } fr
  */
 export default function SalesOrderPage({ state, setState }) {
   const { view, loading, loadingName, error, data, fileName } = state;
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleManualAdd = (formData) => {
+    const newItem = {
+      pdfUrl: formData.pdfFile ? URL.createObjectURL(formData.pdfFile) : null,
+      pdfName: formData.pdfFile ? formData.pdfFile.name : "Manual Entry",
+      sold_to_party: { name: formData.name },
+      order_info: { 
+        sales_order_number: formData.sales_order_number,
+        sales_order_valid_from: formData.sales_order_valid_from,
+        sales_order_valid_to: formData.sales_order_valid_to
+      },
+      mine_info: {
+        area: formData.office_area,
+        mine: formData.mine
+      },
+      line_items: [{ quantity: formData.quantity, mine: formData.mine }],
+      pricing: [{ description: "Requisite Payment", rate_per_te: formData.rate_per_te, amount: formData.amount }],
+      totals: { requisite_payment: formData.amount }
+    };
+    setState((s) => ({
+      ...s,
+      data: s.data && Array.isArray(s.data) ? [...s.data, newItem] : [newItem],
+      view: "results",
+      fileName: s.fileName || "Manual Entry"
+    }));
+    setIsModalOpen(false);
+  };
 
   const handleFiles = useCallback(
     async (files) => {
@@ -25,7 +54,10 @@ export default function SalesOrderPage({ state, setState }) {
         const results = await Promise.all(
           files.map(async (file) => {
             const text = await extractTextFromPdf(file);
-            return parseSalesOrder(text);
+            const parsed = parseSalesOrder(text);
+            parsed.pdfUrl = URL.createObjectURL(file);
+            parsed.pdfName = file.name;
+            return parsed;
           })
         );
         setState((s) => {
@@ -55,7 +87,13 @@ export default function SalesOrderPage({ state, setState }) {
 
   const handleExportJson = () => {
     if (!data) return;
-    downloadBlob(JSON.stringify(data, null, 2), fileName.replace(/\.pdf$/i, "") + "_SO.json", "application/json");
+    downloadBlob(JSON.stringify(data, null, 2), fileName.replace(/\.pdf$/i, "") + "_sales_order.json", "application/json");
+  };
+
+  const handleSave = () => {
+    if (!data) return;
+    localStorage.setItem("sales_order_data", JSON.stringify(data));
+    alert("Data saved to LocalStorage successfully!");
   };
 
   const handleExportCsv = () => {
@@ -136,6 +174,10 @@ export default function SalesOrderPage({ state, setState }) {
             title="Upload Sales Order PDF"
             icon="📄"
           />
+          <div style={{ textAlign: "center", marginTop: 20 }}>
+            <span style={{ color: "var(--muted)", marginRight: 15, fontSize: "14px" }}>Or enter data manually</span>
+            <button className="btn outline" onClick={() => setIsModalOpen(true)}>+ Add Form</button>
+          </div>
           <div className="table-card" style={{ marginTop: 40, opacity: 0.6, pointerEvents: "none" }}>
             <div className="table-header">
               <div className="table-title">Data Preview (Upload PDF to populate)</div>
@@ -153,12 +195,13 @@ export default function SalesOrderPage({ state, setState }) {
                     <th>Mine</th>
                     <th className="num">Rate Per TE(INR)</th>
                     <th className="num">Amount(INR)</th>
+                    <th>Preview</th>
                     <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td colSpan="10" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
+                    <td colSpan="11" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
                       Upload a PDF to view extracted data
                     </td>
                   </tr>
@@ -176,10 +219,31 @@ export default function SalesOrderPage({ state, setState }) {
           onAddFiles={handleFiles}
           onExportJson={handleExportJson}
           onExportCsv={handleExportCsv}
+          onSave={handleSave}
           onDeleteRow={handleDeleteRow}
           onUpdateRow={handleUpdateRow}
+          onAddManual={() => setIsModalOpen(true)}
         />
       )}
+
+      <EditModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleManualAdd}
+        title="Add Manual Entry"
+        initialData={{}}
+        columns={[
+          { key: "name", label: "Name" },
+          { key: "sales_order_number", label: "Sales Order Number" },
+          { key: "sales_order_valid_from", label: "Sales Order Valid From" },
+          { key: "sales_order_valid_to", label: "Sales Order Valid To" },
+          { key: "office_area", label: "Office Area" },
+          { key: "quantity", label: "Quantity" },
+          { key: "mine", label: "Mine" },
+          { key: "rate_per_te", label: "Rate Per TE(INR)" },
+          { key: "amount", label: "Amount(INR)" },
+        ]}
+      />
     </div>
   );
 }

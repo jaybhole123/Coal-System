@@ -1,11 +1,28 @@
 import { useState, useCallback } from "react";
 import Dropzone from "../components/Dropzone";
 import InvoiceResults from "../components/InvoiceResults";
+import EditModal from "../components/EditModal";
 import { extractRows, downloadBlob } from "../utils/pdfParser";
-import { parseInvoiceText, toInvoiceCSV } from "../utils/invoiceParser";
+import { parseInvoiceText, toInvoiceCSV, INVOICE_COLS } from "../utils/invoiceParser";
 
 export default function InvoicePage({ state, setState }) {
   const { view, loading, loadingName, error, data, fileName } = state;
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleManualAdd = (formData) => {
+    const newItem = {
+      ...formData,
+      pdfUrl: formData.pdfFile ? URL.createObjectURL(formData.pdfFile) : null,
+      pdfName: formData.pdfFile ? formData.pdfFile.name : "Manual Entry"
+    };
+    setState((s) => ({
+      ...s,
+      data: s.data && Array.isArray(s.data) ? [...s.data, newItem] : [newItem],
+      view: "results",
+      fileName: s.fileName || "Manual Entry"
+    }));
+    setIsModalOpen(false);
+  };
 
   const handleFiles = useCallback(
     async (files) => {
@@ -22,7 +39,10 @@ export default function InvoicePage({ state, setState }) {
         const results = await Promise.all(
           files.map(async (file) => {
             const rows = await extractRows(file);
-            return parseInvoiceText(rows);
+            const parsed = parseInvoiceText(rows);
+            parsed.pdfUrl = URL.createObjectURL(file);
+            parsed.pdfName = file.name;
+            return parsed;
           })
         );
         setState((s) => {
@@ -50,6 +70,12 @@ export default function InvoicePage({ state, setState }) {
   const handleExportJson = () => {
     if (!data) return;
     downloadBlob(JSON.stringify(data, null, 2), fileName.replace(/\.pdf$/i, "") + "_invoice.json", "application/json");
+  };
+
+  const handleSave = () => {
+    if (!data) return;
+    localStorage.setItem("invoice_data", JSON.stringify(data));
+    alert("Data saved to LocalStorage successfully!");
   };
 
   const handleExportCsv = () => {
@@ -93,6 +119,10 @@ export default function InvoicePage({ state, setState }) {
             title="Upload Invoice PDF"
             icon="📑"
           />
+          <div style={{ textAlign: "center", marginTop: 20 }}>
+            <span style={{ color: "var(--muted)", marginRight: 15, fontSize: "14px" }}>Or enter data manually</span>
+            <button className="btn outline" onClick={() => setIsModalOpen(true)}>+ Add Form</button>
+          </div>
           <div className="table-card" style={{ marginTop: 40, opacity: 0.6, pointerEvents: "none" }}>
             <div className="table-header">
               <div className="table-title">Data Preview (Upload PDF to populate)</div>
@@ -111,12 +141,13 @@ export default function InvoicePage({ state, setState }) {
                     <th>VEHICLE NO</th>
                     <th>QUANTITY</th>
                     <th>TOTAL AMOUNT</th>
+                    <th>Preview</th>
                     <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td colSpan="11" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
+                    <td colSpan="12" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
                       Upload a PDF to view extracted data
                     </td>
                   </tr>
@@ -135,10 +166,21 @@ export default function InvoicePage({ state, setState }) {
           onAddFiles={handleFiles}
           onExportJson={handleExportJson}
           onExportCsv={handleExportCsv}
+          onSave={handleSave}
           onDeleteRow={handleDeleteRow}
           onUpdateRow={handleUpdateRow}
+          onAddManual={() => setIsModalOpen(true)}
         />
       )}
+
+      <EditModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleManualAdd}
+        title="Add Manual Entry"
+        initialData={{}}
+        columns={INVOICE_COLS}
+      />
     </div>
   );
 }

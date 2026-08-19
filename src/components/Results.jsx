@@ -14,7 +14,13 @@ import { exportToExcel, exportToPDF } from "../utils/exportHelpers";
  *   onReset     — callback to go back to dropzone
  *   onExportJson / onExportCsv — export callbacks
  */
-export default function Results({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv, onDeleteRow, onUpdateRow }) {
+export default function Results({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv,
+  onExportExcel,
+  onSave,
+  onDeleteRow,
+  onUpdateRow,
+  onAddManual
+}) {
   const [editingIndex, setEditingIndex] = useState(null);
   const fileInputRef = useRef(null);
   
@@ -53,6 +59,7 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
     description: display(d.material?.description),
     quantity: d.material ? `${d.material.quantity ?? "—"} ${d.material.unit ?? ""}`.trim() : "—",
     requisitePayment: d.totals?.requisitePayment !== null && d.totals?.requisitePayment !== undefined ? `₹ ${INR(d.totals.requisitePayment)}` : "—",
+    pdfUrl: d.pdfUrl,
   });
 
   const columnsForExport = [
@@ -104,6 +111,20 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
         <div className="results-actions" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <button 
             className="btn ghost" 
+            onClick={onSave}
+            style={{ 
+              borderColor: "var(--primary)", 
+              color: "var(--primary)", 
+              display: "inline-flex", 
+              alignItems: "center", 
+              gap: "6px",
+              background: "rgba(0, 0, 0, 0.04)"
+            }}
+          >
+            💾 SAVE
+          </button>
+          <button 
+            className="btn ghost" 
             onClick={handleExportExcel} 
             style={{ 
               borderColor: "#107c41", 
@@ -142,6 +163,9 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
             PDF
           </button>
           <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept=".pdf" />
+          <button className="btn outline" onClick={onAddManual}>
+            + ADD FORM
+          </button>
           <button className="btn" onClick={() => fileInputRef.current?.click()}>
             ADD PDF
           </button>
@@ -251,6 +275,7 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
                 <th>Description</th>
                 <th>Quantity</th>
                 <th className="num-h">Requisite Payment (INR)</th>
+                <th>Preview</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -276,6 +301,15 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
                     <td className="text-cell" title={summaryRow.description}>{summaryRow.description}</td>
                     <td>{summaryRow.quantity}</td>
                     <td className="amount-cell">{summaryRow.requisitePayment}</td>
+                    <td>
+                      {summaryRow.pdfUrl ? (
+                        <a href={summaryRow.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
+                          View PDF
+                        </a>
+                      ) : (
+                        <span style={{ color: "var(--muted)" }}>-</span>
+                      )}
+                    </td>
                     <td style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                       <button
                         style={{
