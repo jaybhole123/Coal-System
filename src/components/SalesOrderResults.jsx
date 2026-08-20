@@ -121,20 +121,7 @@ export default function SalesOrderResults({
           <div className="results-hint">Sales Order Extracted</div>
         </div>
         <div className="results-actions">
-          <button 
-            className="btn ghost" 
-            onClick={onSave}
-            style={{ 
-              borderColor: "var(--primary)", 
-              color: "var(--primary)", 
-              display: "inline-flex", 
-              alignItems: "center", 
-              gap: "6px",
-              background: "rgba(0, 0, 0, 0.04)"
-            }}
-          >
-            💾 SAVE
-          </button>
+
           <button 
             className="btn ghost" 
             onClick={handleExportExcel} 
@@ -196,6 +183,7 @@ export default function SalesOrderResults({
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Sales Order Number</th>
                 <th>Left Days</th>
               </tr>
             </thead>
@@ -205,6 +193,7 @@ export default function SalesOrderResults({
                 return (
                   <tr key={`left-days-${index}`}>
                     <td data-label="Name">{summaryRow.name}</td>
+                    <td data-label="Sales Order Number">{summaryRow.sales_order_number}</td>
                     <td data-label="Left Days" style={{ color: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "#dc2626" : "inherit", fontWeight: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "500" : "normal" }}>
                       {getDaysLeft(summaryRow.sales_order_valid_to)}
                     </td>
@@ -265,18 +254,19 @@ export default function SalesOrderResults({
                         <span style={{ color: "var(--muted)" }}>-</span>
                       )}
                     </td>
-                    <td data-label="Action" style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                    <td data-label="Action">
+                      <div style={{ display: "flex", gap: "6px", alignItems: "center", justifyContent: "flex-end" }}>
                       <button
-                        style={{
-                          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
-                          padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px",
-                          border: "1px solid var(--border)", background: "white",
-                          color: "var(--text)", boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                          transition: "all 0.15s ease",
-                        }}
-                        onMouseOver={(e) => { e.currentTarget.style.background = "#f4f4f5"; }}
-                        onMouseOut={(e) => { e.currentTarget.style.background = "white"; }}
-                        onClick={() => handleEditClick(index)}
+                          style={{
+                            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
+                            padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px",
+                            border: "1px solid #dcfce7", background: "#f0fdf4",
+                            color: "#16a34a", boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                            transition: "all 0.15s ease",
+                          }}
+                          onMouseOver={(e) => { e.currentTarget.style.background = "#dcfce7"; }}
+                          onMouseOut={(e) => { e.currentTarget.style.background = "#f0fdf4"; }}
+                          onClick={() => handleEditClick(index)}
                         title="Edit"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -296,12 +286,19 @@ export default function SalesOrderResults({
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>Delete
                       </button>
+                      </div>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+        </div>
+        <div style={{ padding: "16px 20px", display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--line)", background: "var(--panel)", borderBottomLeftRadius: "var(--radius)", borderBottomRightRadius: "var(--radius)" }}>
+          <button className="btn" onClick={onSave} style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "var(--ember-bright)", color: "white", padding: "8px 24px", fontSize: "14px", fontWeight: "600", border: "none", borderRadius: "6px", cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+            SAVE DATA
+          </button>
         </div>
       </div>
 

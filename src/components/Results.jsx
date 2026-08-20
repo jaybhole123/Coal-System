@@ -109,20 +109,7 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
           <div className="results-hint">Extraction complete</div>
         </div>
         <div className="results-actions" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <button 
-            className="btn ghost" 
-            onClick={onSave}
-            style={{ 
-              borderColor: "var(--primary)", 
-              color: "var(--primary)", 
-              display: "inline-flex", 
-              alignItems: "center", 
-              gap: "6px",
-              background: "rgba(0, 0, 0, 0.04)"
-            }}
-          >
-            💾 SAVE
-          </button>
+
           <button 
             className="btn ghost" 
             onClick={handleExportExcel} 
@@ -284,24 +271,24 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
                 const summaryRow = buildSummaryRow(d);
                 return (
                   <tr key={index}>
-                    <td className="row-num">{index + 1}</td>
-                    <td>{summaryRow.customerCode}</td>
-                    <td className="text-cell" title={summaryRow.customerName}>{summaryRow.customerName}</td>
-                    <td>{summaryRow.gstin}</td>
-                    <td className="text-cell" title={summaryRow.areaOffice}>{summaryRow.areaOffice}</td>
-                    <td>{summaryRow.salesDocNo}</td>
-                    <td>{summaryRow.validToDate}</td>
-                    <td>{summaryRow.salesOrderDate}</td>
-                    <td>{summaryRow.grade}</td>
-                    <td>{summaryRow.paymentDueDate}</td>
-                    <td>{summaryRow.gcv}</td>
-                    <td className="text-cell" title={summaryRow.auctionDateRef}>{summaryRow.auctionDateRef}</td>
-                    <td>{summaryRow.area}</td>
-                    <td>{summaryRow.materialCode}</td>
-                    <td className="text-cell" title={summaryRow.description}>{summaryRow.description}</td>
-                    <td>{summaryRow.quantity}</td>
-                    <td className="amount-cell">{summaryRow.requisitePayment}</td>
-                    <td>
+                    <td className="row-num" data-label="#">{index + 1}</td>
+                    <td data-label="Customer Code">{summaryRow.customerCode}</td>
+                    <td className="text-cell" title={summaryRow.customerName} data-label="Customer Name">{summaryRow.customerName}</td>
+                    <td data-label="GSTIN">{summaryRow.gstin}</td>
+                    <td className="text-cell" title={summaryRow.areaOffice} data-label="Area Office">{summaryRow.areaOffice}</td>
+                    <td data-label="Sales Doc No">{summaryRow.salesDocNo}</td>
+                    <td data-label="Valid to Date">{summaryRow.validToDate}</td>
+                    <td data-label="Sales Order Date">{summaryRow.salesOrderDate}</td>
+                    <td data-label="Grade">{summaryRow.grade}</td>
+                    <td data-label="Payment Due Date">{summaryRow.paymentDueDate}</td>
+                    <td data-label="GCV">{summaryRow.gcv}</td>
+                    <td className="text-cell" title={summaryRow.auctionDateRef} data-label="Auction Date & Ref">{summaryRow.auctionDateRef}</td>
+                    <td data-label="Area">{summaryRow.area}</td>
+                    <td data-label="Mat. Code">{summaryRow.materialCode}</td>
+                    <td className="text-cell" title={summaryRow.description} data-label="Description">{summaryRow.description}</td>
+                    <td data-label="Quantity">{summaryRow.quantity}</td>
+                    <td className="amount-cell" data-label="Requisite Payment (INR)">{summaryRow.requisitePayment}</td>
+                    <td data-label="Preview">
                       {summaryRow.pdfUrl ? (
                         <a href={summaryRow.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
                           View PDF
@@ -310,18 +297,19 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
                         <span style={{ color: "var(--muted)" }}>-</span>
                       )}
                     </td>
-                    <td style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                    <td data-label="Action">
+                      <div style={{ display: "flex", gap: "6px", alignItems: "center", justifyContent: "flex-end" }}>
                       <button
-                        style={{
-                          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
-                          padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px",
-                          border: "1px solid var(--border)", background: "white",
-                          color: "var(--text)", boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                          transition: "all 0.15s ease",
-                        }}
-                        onMouseOver={(e) => { e.currentTarget.style.background = "#f4f4f5"; }}
-                        onMouseOut={(e) => { e.currentTarget.style.background = "white"; }}
-                        onClick={() => handleEditClick(index)}
+                          style={{
+                            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
+                            padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px",
+                            border: "1px solid #dcfce7", background: "#f0fdf4",
+                            color: "#16a34a", boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                            transition: "all 0.15s ease",
+                          }}
+                          onMouseOver={(e) => { e.currentTarget.style.background = "#dcfce7"; }}
+                          onMouseOut={(e) => { e.currentTarget.style.background = "#f0fdf4"; }}
+                          onClick={() => handleEditClick(index)}
                         title="Edit"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -352,12 +340,19 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
                         </svg>
                         Delete
                       </button>
+                      </div>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+        </div>
+        <div style={{ padding: "16px 20px", display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--line)", background: "var(--panel)", borderBottomLeftRadius: "var(--radius)", borderBottomRightRadius: "var(--radius)" }}>
+          <button className="btn" onClick={onSave} style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "var(--ember-bright)", color: "white", padding: "8px 24px", fontSize: "14px", fontWeight: "600", border: "none", borderRadius: "6px", cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+            SAVE DATA
+          </button>
         </div>
       </div>
 

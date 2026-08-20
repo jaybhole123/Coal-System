@@ -73,20 +73,7 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
           <div className="results-hint">SECL Intimation Extracted</div>
         </div>
         <div className="results-actions" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <button 
-            className="btn ghost" 
-            onClick={onSave}
-            style={{ 
-              borderColor: "var(--primary)", 
-              color: "var(--primary)", 
-              display: "inline-flex", 
-              alignItems: "center", 
-              gap: "6px",
-              background: "rgba(0, 0, 0, 0.04)"
-            }}
-          >
-            💾 SAVE
-          </button>
+
           <button 
             className="btn ghost" 
             onClick={handleExportExcel} 
@@ -219,6 +206,12 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
                 No items found in the PDF.
               </div>
             )}
+          </div>
+          <div style={{ padding: "16px 20px", display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--line)", background: "var(--panel)", borderBottomLeftRadius: "var(--radius)", borderBottomRightRadius: "var(--radius)" }}>
+            <button className="btn" onClick={onSave} style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "var(--ember-bright)", color: "white", padding: "8px 24px", fontSize: "14px", fontWeight: "600", border: "none", borderRadius: "6px", cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+              SAVE DATA
+            </button>
           </div>
         </div>
       </div>

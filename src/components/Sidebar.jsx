@@ -30,7 +30,7 @@ const NAV = [
       },
       {
         id: "secl-intimation",
-        label: "SECL Extractions",
+        label: "SECL Intimation",
         badge: "NEW",
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -43,9 +43,9 @@ const NAV = [
         ),
       },
       {
-        id: "payment-advice",
-        label: "Payment Advice",
-        badge: "PI",
+        id: "secl-payment-advice",
+        label: "SECL Payment Advice",
+        badge: "SECL",
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="2" y="5" width="20" height="14" rx="2"></rect>
@@ -54,6 +54,7 @@ const NAV = [
           </svg>
         ),
       },
+
       {
         id: "sales-order",
         label: "Sales Order",

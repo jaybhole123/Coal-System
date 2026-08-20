@@ -122,9 +122,9 @@ export default function Dashboard({ onNavigate }) {
       </div>
 
       {/* MAIN CHARTS ROW */}
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24, marginBottom: 24 }}>
+      <div className="dash-grid-main" style={{ marginBottom: 24 }}>
         {/* Trend Area Chart */}
-        <div className="card" style={{ padding: 24, background: "white" }}>
+        <div className="card" style={{ padding: 24 }}>
           <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, margin: "0 0 20px 0", color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Processing Volume Trend (6 Months)
           </h3>
@@ -151,7 +151,7 @@ export default function Dashboard({ onNavigate }) {
         </div>
 
         {/* Donut Chart */}
-        <div className="card" style={{ padding: 24, background: "white" }}>
+        <div className="card" style={{ padding: 24 }}>
           <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, margin: "0 0 20px 0", color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Document Distribution
           </h3>
@@ -179,9 +179,9 @@ export default function Dashboard({ onNavigate }) {
       </div>
 
       {/* SECOND ROW */}
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24 }}>
+      <div className="dash-grid-main">
         {/* Bar Chart */}
-        <div className="card" style={{ padding: 24, background: "white" }}>
+        <div className="card" style={{ padding: 24 }}>
           <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, margin: "0 0 20px 0", color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Weekly Extractor Activity
           </h3>
@@ -211,8 +211,8 @@ export default function Dashboard({ onNavigate }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1, overflowY: "auto" }}>
             <QuickLink title="Auction / Deal" icon="🔨" onClick={() => onNavigate("auction")} />
             <QuickLink title="SECL Extractions" icon="📑" onClick={() => onNavigate("secl-intimation")} />
+            <QuickLink title="SECL Payment Advice" icon="📑" onClick={() => onNavigate("secl-payment-advice")} />
             <QuickLink title="Sales Order (DO)" icon="📄" onClick={() => onNavigate("sales-order")} />
-            <QuickLink title="Payment Advice" icon="⛃" onClick={() => onNavigate("payment-advice")} />
             <QuickLink title="Invoice" icon="🧾" onClick={() => onNavigate("invoice")} />
             <QuickLink title="Work Order" icon="📋" onClick={() => onNavigate("work-order")} />
             <QuickLink title="Dispatch" icon="🚛" onClick={() => onNavigate("dispatch")} />
@@ -229,7 +229,7 @@ function StatCard({ title, value, delta, icon, trend }) {
   if (trend === "down") deltaColor = "#ef4444"; // red
 
   return (
-    <div className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 12, background: "white", border: "1px solid #e5e7eb" }}>
+    <div className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</span>
         <span style={{ fontSize: 24, opacity: 0.8 }}>{icon}</span>

@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import PaymentAdvicePage from "./pages/PaymentAdvicePage";
 import SalesOrderPage from "./pages/SalesOrderPage";
 import SECLIntimationPage from "./pages/SECLIntimationPage";
+import SECLPaymentAdvicePage from "./pages/SECLPaymentAdvicePage";
 import InvoicePage from "./pages/InvoicePage";
 import AuctionPage from "./pages/AuctionPage";
 import WorkOrderPage from "./pages/WorkOrderPage";
@@ -41,6 +42,15 @@ const SECL_INIT = {
 };
 
 const INVOICE_INIT = {
+  view: "drop",
+  loading: false,
+  loadingName: "",
+  error: null,
+  data: null,
+  fileName: "",
+};
+
+const SECL_PAYMENT_ADVICE_INIT = {
   view: "drop",
   loading: false,
   loadingName: "",
@@ -96,7 +106,8 @@ export default function App() {
   const [paymentState, setPaymentState] = useState(() => getInitialState("payment_advice_data", PAYMENT_INIT));
   const [salesOrderState, setSalesOrderState] = useState(() => getInitialState("sales_order_data", SALES_ORDER_INIT));
   const [seclState, setSeclState] = useState(() => getInitialState("secl_data", SECL_INIT));
-  const [invoiceState, setInvoiceState] = useState(() => getInitialState("invoice_data", INVOICE_INIT));
+  const [invoiceState, setInvoiceState] = useState(() => getInitialState("app_invoice_state", INVOICE_INIT));
+  const [seclPaymentAdviceState, setSeclPaymentAdviceState] = useState(() => getInitialState("app_secl_payment_advice_state", SECL_PAYMENT_ADVICE_INIT));
 
   useEffect(() => {
     localStorage.setItem("active_page", activePage);
@@ -113,6 +124,13 @@ export default function App() {
           <PaymentAdvicePage
             state={paymentState}
             setState={setPaymentState}
+          />
+        );
+      case "secl-payment-advice":
+        return (
+          <SECLPaymentAdvicePage
+            state={seclPaymentAdviceState}
+            setState={setSeclPaymentAdviceState}
           />
         );
       case "sales-order":

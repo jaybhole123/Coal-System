@@ -41,20 +41,7 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
           <div className="results-hint">Invoice Extracted</div>
         </div>
         <div className="results-actions" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <button 
-            className="btn ghost" 
-            onClick={onSave}
-            style={{ 
-              borderColor: "var(--primary)", 
-              color: "var(--primary)", 
-              display: "inline-flex", 
-              alignItems: "center", 
-              gap: "6px",
-              background: "rgba(0, 0, 0, 0.04)"
-            }}
-          >
-            💾 SAVE
-          </button>
+
           <button 
             className="btn ghost" 
             onClick={handleExportExcel} 
@@ -126,13 +113,13 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
                   {allItems.map((row, i) => {
                     return (
                       <tr key={i}>
-                        <td className="row-num">{i + 1}</td>
+                        <td className="row-num" data-label="#">{i + 1}</td>
                         {INVOICE_COLS.map((c) => (
-                          <td key={c.key}>
+                          <td key={c.key} data-label={c.label}>
                             {row[c.key] || "—"}
                           </td>
                         ))}
-                        <td>
+                        <td data-label="Preview">
                           {row.pdfUrl ? (
                             <a href={row.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
                               View PDF
@@ -141,17 +128,18 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
                             <span style={{ color: "var(--muted)" }}>-</span>
                           )}
                         </td>
-                        <td style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                        <td data-label="Action">
+                          <div style={{ display: "flex", gap: "6px", alignItems: "center", justifyContent: "flex-end" }}>
                           <button
                             style={{
                               cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
                               padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px",
-                              border: "1px solid var(--border)", background: "white",
-                              color: "var(--text)", boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                              border: "1px solid #dcfce7", background: "#f0fdf4",
+                              color: "#16a34a", boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
                               transition: "all 0.15s ease",
                             }}
-                            onMouseOver={(e) => { e.currentTarget.style.background = "#f4f4f5"; }}
-                            onMouseOut={(e) => { e.currentTarget.style.background = "white"; }}
+                            onMouseOver={(e) => { e.currentTarget.style.background = "#dcfce7"; }}
+                            onMouseOut={(e) => { e.currentTarget.style.background = "#f0fdf4"; }}
                             onClick={() => handleEditClick(i)}
                             title="Edit"
                           >
@@ -172,6 +160,7 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>Delete
                           </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -183,6 +172,12 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
                 No items found in the PDF.
               </div>
             )}
+          </div>
+          <div style={{ padding: "16px 20px", display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--line)", background: "var(--panel)", borderBottomLeftRadius: "var(--radius)", borderBottomRightRadius: "var(--radius)" }}>
+            <button className="btn" onClick={onSave} style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "var(--ember-bright)", color: "white", padding: "8px 24px", fontSize: "14px", fontWeight: "600", border: "none", borderRadius: "6px", cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+              SAVE DATA
+            </button>
           </div>
         </div>
       </div>
