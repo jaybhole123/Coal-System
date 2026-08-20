@@ -135,10 +135,12 @@ const NAV = [
   },
 ];
 
-export default function Sidebar({ activePage, onNavigate }) {
+export default function Sidebar({ activePage, onNavigate, isOpen, onClose }) {
   return (
-    <aside className="sidebar">
-      {/* Brand */}
+    <>
+      <div className={`sidebar-overlay ${isOpen ? "open" : ""}`} onClick={onClose}></div>
+      <aside className={`sidebar ${isOpen ? "open" : ""}`}>
+        {/* Brand */}
       <div className="sidebar-brand">
         <div className="brand-icon" style={{ background: "var(--ember)", color: "#fff", border: "none", boxShadow: "0 4px 12px rgba(0,51,102,0.3)" }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -202,5 +204,6 @@ export default function Sidebar({ activePage, onNavigate }) {
         </div>
       </div>
     </aside>
+    </>
   );
 }

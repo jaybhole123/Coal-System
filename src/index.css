@@ -808,13 +808,92 @@ body {
 /* ═══════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════ */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 99;
+}
+.sidebar-overlay.open {
+  display: block;
+}
+
 @media (max-width: 900px) {
   :root { --sidebar-w: 0px; }
-  .sidebar { display: none; }
+  .sidebar { 
+    display: flex;
+    position: fixed; 
+    left: -240px; 
+    width: 240px;
+    height: 100vh;
+    z-index: 100;
+    transition: left 0.3s ease; 
+  }
+  .sidebar.open {
+    left: 0;
+  }
+  .burger-btn {
+    display: block !important;
+  }
   .grid { grid-template-columns: 1fr; }
   .dash-stats { grid-template-columns: repeat(2, 1fr); }
   .dash-row { grid-template-columns: 1fr; }
   .material-row { grid-template-columns: 1fr 1fr; }
   .page-content { padding: 20px 16px 40px; }
   .topbar { padding: 0 16px; }
+
+  /* Responsive Table as Cards */
+  .stable {
+    min-width: 0;
+  }
+  .stable, .stable thead, .stable tbody, .stable th, .stable td, .stable tr {
+    display: block;
+  }
+  .stable thead tr {
+    display: none;
+  }
+  .stable tr {
+    margin-bottom: 16px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  }
+  .stable td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border: none;
+    border-bottom: 1px dashed rgba(0,0,0,0.1);
+    text-align: right;
+    white-space: normal;
+  }
+  .stable td:last-child {
+    border-bottom: none;
+  }
+  .stable td::before {
+    content: attr(data-label);
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    margin-right: 12px;
+  }
+
+  /* Responsive action buttons */
+  .results-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .results-actions .btn {
+    flex: 1 1 calc(33.33% - 10px);
+    justify-content: center;
+    text-align: center;
+  }
 }

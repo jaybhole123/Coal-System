@@ -51,7 +51,7 @@ export default function SalesOrderPage({ state, setState }) {
       }));
 
       try {
-        const results = await Promise.all(
+        const settledResults = await Promise.allSettled(
           files.map(async (file) => {
             const text = await extractTextFromPdf(file);
             const parsed = parseSalesOrder(text);
@@ -60,11 +60,43 @@ export default function SalesOrderPage({ state, setState }) {
             return parsed;
           })
         );
+
+        const successfulResults = [];
+        const failedFiles = [];
+
+        settledResults.forEach((res, index) => {
+          if (res.status === "fulfilled") {
+            successfulResults.push(res.value);
+          } else {
+            failedFiles.push(files[index].name);
+            console.error(`Failed to parse ${files[index].name}:`, res.reason);
+          }
+        });
+
+        if (failedFiles.length > 0) {
+          // We will show these in the UI instead of an alert
+        }
+
+        if (successfulResults.length === 0) {
+          setState((s) => ({
+            ...s,
+            loading: false,
+            error: "None of the uploaded files were valid Sales Order PDFs.",
+          }));
+          return;
+        }
+
         setState((s) => {
-          const newData = s.data && Array.isArray(s.data) ? [...s.data, ...results] : results;
-          const newFileName = s.fileName ? s.fileName + ", " + (files.length > 1 ? `${files.length} files` : files[0].name) : (files.length > 1 ? `${files.length}_files` : files[0].name);
+          const newData = s.data && Array.isArray(s.data) ? [...s.data, ...successfulResults] : successfulResults;
+          
+          let newFileName = s.fileName || "";
+          if (successfulResults.length > 0) {
+             const addedNames = successfulResults.length > 1 ? `${successfulResults.length} files` : successfulResults[0].pdfName;
+             newFileName = newFileName ? `${newFileName}, ${addedNames}` : addedNames;
+          }
+
           return {
-            ...s, loading: false, data: newData, fileName: newFileName, view: "results",
+            ...s, loading: false, data: newData, fileName: newFileName, view: "results", error: null, failedFiles
           };
         });
       } catch (err) {
@@ -72,10 +104,7 @@ export default function SalesOrderPage({ state, setState }) {
         setState((s) => ({
           ...s,
           loading: false,
-          error:
-            "Failed to read PDF. File might be corrupt, password-protected, or in a different format. (" +
-            (err?.message ?? "unknown error") +
-            ")",
+          error: "An unexpected error occurred while processing files.",
         }));
       }
     },
@@ -195,13 +224,14 @@ export default function SalesOrderPage({ state, setState }) {
                     <th>Mine</th>
                     <th className="num">Rate Per TE(INR)</th>
                     <th className="num">Amount(INR)</th>
+                    <th>Left Days</th>
                     <th>Preview</th>
                     <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td colSpan="11" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
+                    <td colSpan="12" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
                       Upload a PDF to view extracted data
                     </td>
                   </tr>
@@ -215,6 +245,7 @@ export default function SalesOrderPage({ state, setState }) {
         <SalesOrderResults
           data={data}
           fileName={fileName}
+          failedFiles={state.failedFiles}
           onReset={handleReset}
           onAddFiles={handleFiles}
           onExportJson={handleExportJson}

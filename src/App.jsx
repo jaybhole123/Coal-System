@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import Dashboard from "./pages/Dashboard";
@@ -89,11 +89,18 @@ const getInitialState = (key, defaultState) => {
 };
 
 export default function App() {
-  const [activePage, setActivePage] = useState("dashboard");
+  const [activePage, setActivePage] = useState(() => {
+    return localStorage.getItem("active_page") || "dashboard";
+  });
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [paymentState, setPaymentState] = useState(() => getInitialState("payment_advice_data", PAYMENT_INIT));
   const [salesOrderState, setSalesOrderState] = useState(() => getInitialState("sales_order_data", SALES_ORDER_INIT));
   const [seclState, setSeclState] = useState(() => getInitialState("secl_data", SECL_INIT));
   const [invoiceState, setInvoiceState] = useState(() => getInitialState("invoice_data", INVOICE_INIT));
+
+  useEffect(() => {
+    localStorage.setItem("active_page", activePage);
+  }, [activePage]);
 
   const renderPage = () => {
     switch (activePage) {
@@ -144,9 +151,14 @@ export default function App() {
 
   return (
     <div className="app-layout">
-      <Sidebar activePage={activePage} onNavigate={setActivePage} />
+      <Sidebar 
+        activePage={activePage} 
+        onNavigate={(id) => { setActivePage(id); setIsSidebarOpen(false); }} 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+      />
       <div className="main-area">
-        <Topbar activePage={activePage} />
+        <Topbar activePage={activePage} onMenuClick={() => setIsSidebarOpen(true)} />
         <main className="page-content" id="main-content">
           {renderPage()}
         </main>

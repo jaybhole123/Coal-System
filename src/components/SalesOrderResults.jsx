@@ -4,7 +4,19 @@ import { useState, useRef } from "react";
 import EditModal from "./EditModal";
 import { exportToExcel, exportToPDF } from "../utils/exportHelpers";
 
-export default function SalesOrderResults({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv, onSave, onDeleteRow, onUpdateRow, onAddManual }) {
+export default function SalesOrderResults({ 
+  data, 
+  fileName, 
+  failedFiles = [],
+  onReset, 
+  onAddFiles, 
+  onExportJson, 
+  onExportCsv, 
+  onSave, 
+  onDeleteRow, 
+  onUpdateRow, 
+  onAddManual 
+}) {
   const [editingIndex, setEditingIndex] = useState(null);
   const fileInputRef = useRef(null);
   
@@ -42,6 +54,22 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
     };
   };
 
+  const getDaysLeft = (validToDateStr) => {
+    if (!validToDateStr || validToDateStr === "-") return "-";
+    const validTo = new Date(validToDateStr);
+    if (isNaN(validTo)) return "-";
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    validTo.setHours(0, 0, 0, 0);
+    
+    const diffTime = validTo - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return "Expired";
+    return `${diffDays} days left`;
+  };
+
   const columnsForExport = [
     { key: "name", label: "Name" },
     { key: "sales_order_number", label: "Sales Order Number" },
@@ -66,13 +94,33 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
 
   return (
     <section id="sales-order-results">
+      {failedFiles && failedFiles.length > 0 && (
+        <div style={{
+          padding: "12px 16px",
+          marginBottom: "20px",
+          backgroundColor: "rgba(220, 53, 69, 0.1)",
+          borderLeft: "4px solid #dc3545",
+          borderRadius: "4px",
+          color: "#dc3545",
+          fontSize: "14px",
+          lineHeight: "1.5"
+        }}>
+          <strong>⚠️ {failedFiles.length} file(s) failed to process:</strong>
+          <ul style={{ margin: "8px 0 0", paddingLeft: "20px" }}>
+            {failedFiles.map((name, idx) => (
+              <li key={idx}>{name}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      
       {/* ── Action bar ── */}
       <div className="results-bar">
         <div>
           <div className="results-file">{fileName}</div>
           <div className="results-hint">Sales Order Extracted</div>
         </div>
-        <div className="results-actions" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        <div className="results-actions">
           <button 
             className="btn ghost" 
             onClick={onSave}
@@ -138,13 +186,43 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
 
       {/* ── Cards and detailed tables removed per user request ── */}
 
+      {/* ── Left Days Summary Table ── */}
+      <div className="table-card" style={{ marginTop: 24 }}>
+        <div className="table-header">
+          <div className="table-title">Left Days Summary</div>
+        </div>
+        <div className="table-scroll" style={{ overflowX: "auto" }}>
+          <table className="stable">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Left Days</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dataArray.map((d, index) => {
+                const summaryRow = buildSummaryRow(d);
+                return (
+                  <tr key={`left-days-${index}`}>
+                    <td data-label="Name">{summaryRow.name}</td>
+                    <td data-label="Left Days" style={{ color: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "#dc2626" : "inherit", fontWeight: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "500" : "normal" }}>
+                      {getDaysLeft(summaryRow.sales_order_valid_to)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* ── Summary Data Table ── */}
       <div className="table-card" style={{ marginTop: 24 }}>
         <div className="table-header">
           <div className="table-title">Summary Data Table</div>
         </div>
         <div className="table-scroll" style={{ overflowX: "auto" }}>
-          <table className="stable" style={{ minWidth: 1200 }}>
+          <table className="stable">
             <thead>
               <tr>
                 <th>Name</th>
@@ -156,6 +234,7 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
                 <th>Mine</th>
                 <th className="num">Rate Per TE(INR)</th>
                 <th className="num">Amount(INR)</th>
+                <th>Left Days</th>
                 <th>Preview</th>
                 <th>Action</th>
               </tr>
@@ -165,16 +244,19 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
                 const summaryRow = buildSummaryRow(d);
                 return (
                   <tr key={index}>
-                    <td>{summaryRow.name}</td>
-                    <td>{summaryRow.sales_order_number}</td>
-                    <td>{summaryRow.sales_order_valid_from}</td>
-                    <td>{summaryRow.sales_order_valid_to}</td>
-                    <td>{summaryRow.office_area}</td>
-                    <td>{summaryRow.quantity}</td>
-                    <td>{summaryRow.mine}</td>
-                    <td className="num">{summaryRow.rate_per_te}</td>
-                    <td className="num">{summaryRow.amount}</td>
-                    <td>
+                    <td data-label="Name">{summaryRow.name}</td>
+                    <td data-label="Sales Order Number">{summaryRow.sales_order_number}</td>
+                    <td data-label="Sales Order Valid From">{summaryRow.sales_order_valid_from}</td>
+                    <td data-label="Sales Order Valid To">{summaryRow.sales_order_valid_to}</td>
+                    <td data-label="Office Area">{summaryRow.office_area}</td>
+                    <td data-label="Quantity">{summaryRow.quantity}</td>
+                    <td data-label="Mine">{summaryRow.mine}</td>
+                    <td data-label="Rate Per TE(INR)" className="num">{summaryRow.rate_per_te}</td>
+                    <td data-label="Amount(INR)" className="num">{summaryRow.amount}</td>
+                    <td data-label="Left Days" style={{ color: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "#dc2626" : "inherit", fontWeight: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "500" : "normal" }}>
+                      {getDaysLeft(summaryRow.sales_order_valid_to)}
+                    </td>
+                    <td data-label="Preview">
                       {d.pdfUrl ? (
                         <a href={d.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
                           View PDF
@@ -183,7 +265,7 @@ export default function SalesOrderResults({ data, fileName, onReset, onAddFiles,
                         <span style={{ color: "var(--muted)" }}>-</span>
                       )}
                     </td>
-                    <td style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                    <td data-label="Action" style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                       <button
                         style={{
                           cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
