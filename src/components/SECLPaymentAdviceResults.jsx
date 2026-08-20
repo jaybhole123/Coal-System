@@ -19,6 +19,22 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
     e.target.value = "";
   };
 
+  const getDaysLeft = (validToDateStr) => {
+    if (!validToDateStr || validToDateStr === "-" || validToDateStr === "Not Found") return "-";
+    const validTo = new Date(validToDateStr);
+    if (isNaN(validTo)) return "-";
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    validTo.setHours(0, 0, 0, 0);
+    
+    const diffTime = validTo - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return "Expired";
+    return `${diffDays} days left`;
+  };
+
   // Ensure data is array
   const allItems = Array.isArray(data) ? data : [data];
 
@@ -179,6 +195,41 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* LEFT DAYS SUMMARY TABLE */}
+        {allItems.length > 0 && (
+          <div className="table-card" style={{ marginTop: 24, marginBottom: 24 }}>
+            <div className="table-header">
+              <div className="table-title">Left Days Summary</div>
+            </div>
+            <div className="table-scroll" style={{ overflowX: "auto" }}>
+              <table className="stable">
+                <thead>
+                  <tr>
+                    <th>Mines Name</th>
+                    <th>Customer Name</th>
+                    <th>Left Days</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allItems.map((d, index) => {
+                    const daysLeft = getDaysLeft(d.dueDate);
+                    const isExpired = daysLeft === "Expired";
+                    return (
+                      <tr key={`left-days-${index}`}>
+                        <td data-label="Mines Name">{d.minesName || "-"}</td>
+                        <td data-label="Customer Name">{d.customerName || "-"}</td>
+                        <td data-label="Left Days" style={{ color: isExpired ? "#dc2626" : "inherit", fontWeight: isExpired ? "500" : "normal" }}>
+                          {daysLeft}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
