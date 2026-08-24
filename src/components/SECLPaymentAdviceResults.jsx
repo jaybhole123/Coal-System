@@ -2,10 +2,12 @@ import React, { useRef, useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import EditModal from "./EditModal";
 import { exportToPDF } from "../utils/exportHelpers";
+import HighlightText from "./HighlightText";
 
 export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAddFiles, onSave, onDeleteRow, onUpdateRow, onAddManual }) {
   const fileInputRef = useRef(null);
   const [editingIndex, setEditingIndex] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const handleEditClick = (index) => setEditingIndex(index);
   const handleSaveEdit = (updatedData) => {
@@ -38,13 +40,25 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
   // Ensure data is array
   const allItems = Array.isArray(data) ? data : [data];
 
+  const filteredItems = useMemo(() => {
+    if (!searchTerm) return allItems;
+    const lower = searchTerm.toLowerCase();
+    return allItems.filter(item => {
+      const metaValues = item._meta ? Object.values(item._meta) : [];
+      const directValues = Object.values(item);
+      return [...metaValues, ...directValues].some(val => 
+        val && String(val).toLowerCase().includes(lower)
+      );
+    });
+  }, [allItems, searchTerm]);
+
   // Grouping logic (matching HTML exactly)
   const { groups, order, tQty, tAmt, tGrand, tTcs, tInclTotal } = useMemo(() => {
     const groups = {};
     const order = [];
     let tQty = 0, tAmt = 0, tGrand = 0, tTcs = 0, tInclTotal = 0;
 
-    allItems.forEach((rec, index) => {
+    filteredItems.forEach((rec, index) => {
       // Add a stable index property for Edit/Delete ops if not already present
       const r = { ...rec, _originalIndex: index };
       
@@ -68,7 +82,7 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
     });
     
     return { groups, order, tQty, tAmt, tGrand, tTcs, tInclTotal };
-  }, [allItems]);
+  }, [filteredItems]);
 
   // Excel Export matching the HTML logic
   const handleExportExcel = () => {
@@ -147,6 +161,46 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
     { key: "tcsAmount", label: "TCS Amount" }
   ];
 
+  const [showColumnDropdown, setShowColumnDropdown] = useState(false);
+  const columnDropdownRef = useRef(null);
+
+  const allTableColumns = [
+    { key: "sno", label: "S.No" },
+    { key: "minesName", label: "Mines Name" },
+    { key: "customerName", label: "Customer Name" },
+    { key: "quantity", label: "Quantity (MT)" },
+    { key: "amount", label: "Amount" },
+    { key: "grandTotal", label: "Grand Total" },
+    { key: "auctionDate", label: "Auction Date" },
+    { key: "dueDate", label: "Due Date" },
+    { key: "bidPrice", label: "Bid Price" },
+    { key: "incl50", label: "Including 50" },
+    { key: "preview", label: "Preview" },
+    { key: "action", label: "Action" }
+  ];
+
+  const [visibleCols, setVisibleCols] = useState(
+    allTableColumns.reduce((acc, col) => ({ ...acc, [col.key]: true }), {})
+  );
+
+  const toggleColumn = (key) => {
+    setVisibleCols(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const setAllColumns = (val) => {
+    setVisibleCols(allTableColumns.reduce((acc, col) => ({ ...acc, [col.key]: val }), {}));
+  };
+
+  React.useEffect(() => {
+    function handleClickOutside(event) {
+      if (columnDropdownRef.current && !columnDropdownRef.current.contains(event.target)) {
+        setShowColumnDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <section id="results">
       {/* ACTION BAR */}
@@ -165,6 +219,7 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M9 15h1a2 2 0 0 0 0-4H9v4Z"></path></svg>
             PDF
           </button>
+          
           <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept=".pdf" />
           <button className="btn outline" onClick={onAddManual}>+ MANUAL ENTRY</button>
           <button className="btn" onClick={() => fileInputRef.current?.click()}>ADD PDF</button>
@@ -235,26 +290,89 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
 
         {/* TABLE */}
         <div className="summary-section" style={{ marginTop: 0 }}>
-          <div className="summary-header">
+          <div className="summary-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
             <div className="summary-title">Extracted Payment Records</div>
+            
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              {/* SEARCH BAR */}
+              <div style={{ position: "relative" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)" }}>
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{
+                    padding: "6px 12px 6px 30px",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "6px",
+                    fontSize: "13px",
+                    width: "220px",
+                    outline: "none",
+                    color: "var(--text)"
+                  }}
+                />
+              </div>
+
+              {/* COLUMNS TOGGLE DROPDOWN MOVED HERE */}
+              <div style={{ position: "relative" }} ref={columnDropdownRef}>
+                <button 
+                className="btn ghost" 
+                onClick={() => setShowColumnDropdown(!showColumnDropdown)}
+                style={{ display: "inline-flex", alignItems: "center", gap: "8px", border: "1px solid #d1d5db", borderRadius: "6px", padding: "6px 12px", background: "var(--surface, #fff)", color: "var(--text, #333)", fontSize: "14px", fontWeight: "500", cursor: "pointer", transition: "all 0.15s ease", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}
+                onMouseOver={(e) => { e.currentTarget.style.background = "#f9fafb"; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = "var(--surface, #fff)"; }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line></svg>
+                Columns
+              </button>
+              {showColumnDropdown && (
+                <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: "220px", background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)", zIndex: 100, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                  <div style={{ padding: "12px 14px", borderBottom: "1px solid #f3f4f6", fontSize: "13px", fontWeight: "600", color: "#374151", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>Toggle Columns</span>
+                  </div>
+                  <div style={{ padding: "10px 14px", display: "flex", gap: "12px", borderBottom: "1px solid #f3f4f6", fontSize: "12px", background: "#f9fafb" }}>
+                    <button onClick={() => setAllColumns(true)} style={{ color: "#2563eb", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "600" }}>Select All</button>
+                    <button onClick={() => setAllColumns(false)} style={{ color: "#6b7280", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "500" }}>Deselect All</button>
+                  </div>
+                  <div style={{ maxHeight: "220px", overflowY: "auto", padding: "8px 0" }}>
+                    {allTableColumns.map(col => (
+                      <label key={col.key} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 16px", cursor: "pointer", fontSize: "13px", color: "#4b5563", transition: "background 0.15s", userSelect: "none" }} onMouseOver={(e) => e.currentTarget.style.background = "#f3f4f6"} onMouseOut={(e) => e.currentTarget.style.background = "transparent"}>
+                        <input 
+                          type="checkbox" 
+                          checked={visibleCols[col.key]} 
+                          onChange={() => toggleColumn(col.key)} 
+                          style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb", margin: 0 }}
+                        />
+                        {col.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+              </div>
+            </div>
           </div>
           <div className="summary-table-wrap">
             {allItems.length > 0 ? (
               <table className="stable secl-table">
                 <thead>
                   <tr>
-                    <th className="r">S.No</th>
-                    <th>Mines Name</th>
-                    <th>Customer Name</th>
-                    <th className="r">Quantity (MT)</th>
-                    <th className="r">Amount<br /><small style={{ fontWeight: 400, textTransform: "none" }}>(Requisite Payment)</small></th>
-                    <th className="r">Grand Total<br /><small style={{ fontWeight: 400, textTransform: "none" }}>PMT (÷Qty)</small></th>
-                    <th>Auction Date</th>
-                    <th>Due Date</th>
-                    <th className="r">Bid Price<br /><small style={{ fontWeight: 400, textTransform: "none" }}>PMT (Basic)</small></th>
-                    <th className="r">Including 50<br /><small style={{ fontWeight: 400, textTransform: "none" }}>PMT Rate</small></th>
-                    <th>Preview</th>
-                    <th style={{ width: "60px", textAlign: "center" }}>Action</th>
+                    {visibleCols.sno && <th className="r">S.No</th>}
+                    {visibleCols.minesName && <th>Mines Name</th>}
+                    {visibleCols.customerName && <th>Customer Name</th>}
+                    {visibleCols.quantity && <th className="r">Quantity (MT)</th>}
+                    {visibleCols.amount && <th className="r">Amount<br /><small style={{ fontWeight: 400, textTransform: "none" }}>(Requisite Payment)</small></th>}
+                    {visibleCols.grandTotal && <th className="r">Grand Total<br /><small style={{ fontWeight: 400, textTransform: "none" }}>PMT (÷Qty)</small></th>}
+                    {visibleCols.auctionDate && <th>Auction Date</th>}
+                    {visibleCols.dueDate && <th>Due Date</th>}
+                    {visibleCols.bidPrice && <th className="r">Bid Price<br /><small style={{ fontWeight: 400, textTransform: "none" }}>PMT (Basic)</small></th>}
+                    {visibleCols.incl50 && <th className="r">Including 50<br /><small style={{ fontWeight: 400, textTransform: "none" }}>PMT Rate</small></th>}
+                    {visibleCols.preview && <th>Preview</th>}
+                    {visibleCols.action && <th style={{ width: "60px", textAlign: "center" }}>Action</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -267,26 +385,26 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                         displaySno++;
                         rows.push(
                           <tr key={`row-${r._originalIndex}`}>
-                            <td className="sno" data-label="S.No">{String(displaySno).padStart(2, '0')}</td>
-                            <td className="mines" data-label="Mines Name">
-                              {r.minesName}
+                            {visibleCols.sno && <td className="sno" data-label="S.No">{String(displaySno).padStart(2, '0')}</td>}
+                            {visibleCols.minesName && <td className="mines" data-label="Mines Name">
+                              <HighlightText text={r.minesName} highlight={searchTerm} />
                               {r.isManual && <span className="manual-badge" style={{ display: "inline-block", padding: "1px 5px", background: "rgba(31,111,235,0.15)", color: "var(--primary)", borderRadius: "3px", fontSize: "9px", fontFamily: "var(--font-mono)", fontWeight: 600, verticalAlign: "middle", marginLeft: "4px" }}>MANUAL</span>}
-                            </td>
-                            <td className="mines" style={{ fontWeight: 400 }} data-label="Customer Name">{r.customerName}</td>
-                            <td className="r" data-label="Quantity">{r.quantity !== null ? r.quantity.toLocaleString('en-IN') : <span className="val-nf" style={{ color: "var(--danger)" }}>Not Found</span>}</td>
-                            <td className="r" data-label="Requisite Payment">
-                              <span style={{ color: "#e3b341", fontWeight: 600 }}>{formatINR(r.requisitePayment)}</span>
-                            </td>
-                            <td className="r" data-label="Grand Total PMT">
-                              <span style={{ color: "var(--primary)" }}>{formatN(rd2(r.grandPMT))}</span>
-                            </td>
-                            <td className="date" data-label="Auction Date">{r.auctionDate || "—"}</td>
-                            <td className="date" data-label="Due Date">{r.dueDate}</td>
-                            <td className="r" data-label="Bid Price PMT">{formatN(r.bidPrice !== null ? rd2(r.bidPrice) : null)}</td>
-                            <td className="r" data-label="Incl 50 PMT">
-                              <span style={{ color: "#3fb950", fontWeight: 600 }}>{formatN(rd2(r.incl50))}</span>
-                            </td>
-                            <td data-label="Preview">
+                            </td>}
+                            {visibleCols.customerName && <td className="mines" style={{ fontWeight: 400 }} data-label="Customer Name"><HighlightText text={r.customerName} highlight={searchTerm} /></td>}
+                            {visibleCols.quantity && <td className="r" data-label="Quantity">{r.quantity !== null ? <HighlightText text={r.quantity.toLocaleString('en-IN')} highlight={searchTerm} /> : <span className="val-nf" style={{ color: "var(--danger)" }}>Not Found</span>}</td>}
+                            {visibleCols.amount && <td className="r" data-label="Requisite Payment">
+                              <span style={{ color: "#e3b341", fontWeight: 600 }}><HighlightText text={formatINR(r.requisitePayment)} highlight={searchTerm} /></span>
+                            </td>}
+                            {visibleCols.grandTotal && <td className="r" data-label="Grand Total PMT">
+                              <span style={{ color: "var(--primary)" }}><HighlightText text={formatN(rd2(r.grandPMT))} highlight={searchTerm} /></span>
+                            </td>}
+                            {visibleCols.auctionDate && <td className="date" data-label="Auction Date"><HighlightText text={r.auctionDate || "—"} highlight={searchTerm} /></td>}
+                            {visibleCols.dueDate && <td className="date" data-label="Due Date"><HighlightText text={r.dueDate} highlight={searchTerm} /></td>}
+                            {visibleCols.bidPrice && <td className="r" data-label="Bid Price PMT"><HighlightText text={formatN(r.bidPrice !== null ? rd2(r.bidPrice) : null)} highlight={searchTerm} /></td>}
+                            {visibleCols.incl50 && <td className="r" data-label="Incl 50 PMT">
+                              <span style={{ color: "#3fb950", fontWeight: 600 }}><HighlightText text={formatN(rd2(r.incl50))} highlight={searchTerm} /></span>
+                            </td>}
+                            {visibleCols.preview && <td data-label="Preview">
                               {r.pdfUrl ? (
                                 <a href={r.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
                                   View PDF
@@ -294,8 +412,8 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                               ) : (
                                 <span style={{ color: "var(--muted)" }}>-</span>
                               )}
-                            </td>
-                            <td data-label="Action">
+                            </td>}
+                            {visibleCols.action && <td data-label="Action">
                               <div style={{ display: "flex", gap: "6px", alignItems: "center", justifyContent: "flex-end" }}>
                                 <button
                                   style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px", padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px", border: "1px solid #dcfce7", background: "#f0fdf4", color: "#16a34a", boxShadow: "0 1px 2px rgba(0,0,0,0.05)", transition: "all 0.15s ease" }}
@@ -317,36 +435,52 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                                   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>Delete
                                 </button>
                               </div>
-                            </td>
+                            </td>}
                           </tr>
                         );
                       });
 
                       // Party subtotal row
+                      const colSpanBeforeQty = (visibleCols.sno ? 1 : 0) + (visibleCols.minesName ? 1 : 0) + (visibleCols.customerName ? 1 : 0);
                       rows.push(
                         <tr key={`sub-${cn}`} className="party-sub-row" style={{ background: "rgba(88,166,255,0.06)", borderTop: "1px solid rgba(88,166,255,0.2)", borderBottom: "2px solid rgba(88,166,255,0.25)" }}>
-                          <td colSpan="3" style={{ color: "var(--primary)", fontFamily: "var(--font-mono)", fontSize: "12px", padding: "10px 14px" }}>
-                            <span style={{ color: "var(--primary)", marginRight: "4px" }}>↳</span>
-                            {g.name} — {g.invoices} invoice{g.invoices > 1 ? 's' : ''}
-                          </td>
-                          <td className="r" data-label="Total Qty" style={{ color: "var(--primary)", fontFamily: "var(--font-mono)", fontSize: "12px", padding: "10px 14px", fontWeight: 600 }}>{g.qty.toLocaleString('en-IN')}</td>
-                          <td className="r" data-label="Total Payment" style={{ color: "#e3b341", fontFamily: "var(--font-mono)", fontSize: "12px", padding: "10px 14px", fontWeight: 600 }}>₹{g.req.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                          <td colSpan="6"></td>
-                          <td></td>
+                          {colSpanBeforeQty > 0 && (
+                            <td colSpan={colSpanBeforeQty} style={{ color: "var(--primary)", fontFamily: "var(--font-mono)", fontSize: "12px", padding: "10px 14px" }}>
+                              <span style={{ color: "var(--primary)", marginRight: "4px" }}>↳</span>
+                              {g.name} — {g.invoices} invoice{g.invoices > 1 ? 's' : ''}
+                            </td>
+                          )}
+                          {visibleCols.quantity && <td className="r" data-label="Total Qty" style={{ color: "var(--primary)", fontFamily: "var(--font-mono)", fontSize: "12px", padding: "10px 14px", fontWeight: 600 }}>{g.qty.toLocaleString('en-IN')}</td>}
+                          {visibleCols.amount && <td className="r" data-label="Total Payment" style={{ color: "#e3b341", fontFamily: "var(--font-mono)", fontSize: "12px", padding: "10px 14px", fontWeight: 600 }}>₹{g.req.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>}
+                          {visibleCols.grandTotal && <td></td>}
+                          {visibleCols.auctionDate && <td></td>}
+                          {visibleCols.dueDate && <td></td>}
+                          {visibleCols.bidPrice && <td></td>}
+                          {visibleCols.incl50 && <td></td>}
+                          {visibleCols.preview && <td></td>}
+                          {visibleCols.action && <td></td>}
                         </tr>
                       );
                     });
                     
                     // Grand Total Row
+                    const colSpanBeforeQtyTotal = (visibleCols.sno ? 1 : 0) + (visibleCols.minesName ? 1 : 0) + (visibleCols.customerName ? 1 : 0);
                     rows.push(
                       <tr key="totals" className="totals-row" style={{ background: "var(--panel)", borderTop: "2px solid var(--border)" }}>
-                        <td colSpan="3" style={{ padding: "12px 14px", fontSize: "12px", color: "var(--muted)", fontWeight: 600 }}>
-                          TOTAL &nbsp;·&nbsp; {allItems.length} record{allItems.length > 1 ? 's' : ''}
-                        </td>
-                        <td className="r" data-label="Total Qty" style={{ color: "#3fb950", fontFamily: "var(--font-mono)", fontWeight: 600, padding: "12px 14px" }}>{tQty.toLocaleString('en-IN')}</td>
-                        <td className="r" data-label="Total Payment" style={{ color: "#e3b341", fontFamily: "var(--font-mono)", fontWeight: 600, padding: "12px 14px" }}>₹{tAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        <td colSpan="6"></td>
-                        <td></td>
+                        {colSpanBeforeQtyTotal > 0 && (
+                          <td colSpan={colSpanBeforeQtyTotal} style={{ padding: "12px 14px", fontSize: "12px", color: "var(--muted)", fontWeight: 600 }}>
+                            TOTAL &nbsp;·&nbsp; {filteredItems.length} record{filteredItems.length !== 1 ? 's' : ''}
+                          </td>
+                        )}
+                        {visibleCols.quantity && <td className="r" data-label="Total Qty" style={{ color: "#3fb950", fontFamily: "var(--font-mono)", fontWeight: 600, padding: "12px 14px" }}>{tQty.toLocaleString('en-IN')}</td>}
+                        {visibleCols.amount && <td className="r" data-label="Total Payment" style={{ color: "#e3b341", fontFamily: "var(--font-mono)", fontWeight: 600, padding: "12px 14px" }}>₹{tAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>}
+                        {visibleCols.grandTotal && <td></td>}
+                        {visibleCols.auctionDate && <td></td>}
+                        {visibleCols.dueDate && <td></td>}
+                        {visibleCols.bidPrice && <td></td>}
+                        {visibleCols.incl50 && <td></td>}
+                        {visibleCols.preview && <td></td>}
+                        {visibleCols.action && <td></td>}
                       </tr>
                     );
                     

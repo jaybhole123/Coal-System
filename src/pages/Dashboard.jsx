@@ -204,7 +204,7 @@ export default function Dashboard({ onNavigate }) {
         </div>
 
         {/* Quick Links */}
-        <div className="card" style={{ padding: 24, display: "flex", flexDirection: "column", background: "white" }}>
+        <div className="card" style={{ padding: 24, display: "flex", flexDirection: "column" }}>
           <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, margin: "0 0 20px 0", color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Quick Extractors
           </h3>
@@ -252,17 +252,17 @@ function QuickLink({ title, icon, onClick }) {
       onClick={onClick}
       style={{ 
         display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", 
-        border: "1px solid #e5e7eb", borderRadius: 8, cursor: "pointer",
-        transition: "all 0.2s ease", background: "#f9fafb"
+        border: "1px solid var(--line)", borderRadius: 8, cursor: "pointer",
+        transition: "all 0.2s ease", background: "var(--panel-2)"
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.borderColor = "var(--ember)";
-        e.currentTarget.style.background = "#eff6ff";
+        e.currentTarget.style.background = "var(--ember-dim)";
         e.currentTarget.style.transform = "translateX(4px)";
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "#e5e7eb";
-        e.currentTarget.style.background = "#f9fafb";
+        e.currentTarget.style.borderColor = "var(--line)";
+        e.currentTarget.style.background = "var(--panel-2)";
         e.currentTarget.style.transform = "translateX(0)";
       }}
     >
