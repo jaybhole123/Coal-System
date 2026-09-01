@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { showToast } from "../utils/toast";
 import Dropzone from "../components/Dropzone";
 import EditModal from "../components/EditModal";
 import * as pdfjsLib from "pdfjs-dist";
@@ -190,7 +191,7 @@ export default function SECLFormat2Page() {
   const handleSave = () => {
     if (docs.length === 0) return;
     localStorage.setItem("secl_format2_data", JSON.stringify(docs));
-    alert("Data saved to LocalStorage successfully!");
+    showToast("Data saved to LocalStorage successfully!");
   };
 
   return (

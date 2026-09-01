@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { showToast } from "../utils/toast";
 import Dropzone from "../components/Dropzone";
 import SECLIntimationResults from "../components/SECLIntimationResults";
 import EditModal from "../components/EditModal";
@@ -93,7 +94,7 @@ export default function SECLIntimationPage({ state, setState }) {
   const handleSave = () => {
     if (!data) return;
     localStorage.setItem("secl_data", JSON.stringify(data));
-    alert("Data saved to LocalStorage successfully!");
+    showToast("Data saved to LocalStorage successfully!");
   };
 
   const handleExportCsv = () => {

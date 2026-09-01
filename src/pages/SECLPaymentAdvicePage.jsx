@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from "react";
+import { showToast } from "../utils/toast";
 import Dropzone from "../components/Dropzone";
 import SECLPaymentAdviceResults from "../components/SECLPaymentAdviceResults";
 import EditModal from "../components/EditModal";
@@ -113,7 +114,7 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
   const handleSave = () => {
     if (!data) return;
     localStorage.setItem("secl_payment_advice_data", JSON.stringify(data));
-    alert("Data saved to LocalStorage successfully!");
+    showToast("Data saved to LocalStorage successfully!");
   };
 
   const handleDeleteRow = (index) => {

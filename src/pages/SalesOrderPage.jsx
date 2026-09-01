@@ -1,8 +1,10 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
+import { showToast } from "../utils/toast";
 import Dropzone from "../components/Dropzone";
 import SalesOrderResults from "../components/SalesOrderResults";
 import EditModal from "../components/EditModal";
 import { extractTextFromPdf, parseSalesOrder, toCSVSalesOrder, downloadBlob } from "../utils/salesOrderParser";
+import { supabase } from "../utils/supabase";
 
 /**
  * SalesOrderPage — owns the upload/result state for this page.
@@ -11,6 +13,67 @@ import { extractTextFromPdf, parseSalesOrder, toCSVSalesOrder, downloadBlob } fr
 export default function SalesOrderPage({ state, setState }) {
   const { view, loading, loadingName, error, data, fileName } = state;
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setState(s => ({ ...s, loading: true, loadingName: "Loading data from database..." }));
+        const { data: dbData, error: dbError } = await supabase.from('sales_orders').select('*').order('created_at', { ascending: false });
+        
+        if (dbError) throw dbError;
+
+        if (dbData && dbData.length > 0) {
+          const mappedData = dbData.map(row => ({
+            id: row.id,
+            pdfName: row.pdf_name || "From Database",
+            pdfUrl: row.pdf_url || null,
+            sold_to_party: { name: row.name },
+            order_info: { 
+              sales_order_number: row.sales_order_number,
+              sales_order_valid_from: row.sales_order_valid_from,
+              sales_order_valid_to: row.sales_order_valid_to
+            },
+            company: { office_area: row.office_area },
+            mine_info: {
+              area: row.office_area,
+              mine: row.mine
+            },
+            line_items: [{
+              quantity: row.quantity,
+              mine: row.mine
+            }],
+            pricing: [{
+              description: "Requisite Payment",
+              rate_per_te: row.rate_per_te,
+              amount: row.amount
+            }],
+            totals: {
+              requisite_payment: row.amount
+            }
+          }));
+
+          setState(s => ({ 
+            ...s, 
+            data: mappedData, 
+            view: "results", 
+            fileName: "Database Data",
+            loading: false 
+          }));
+        } else {
+          setState(s => ({ ...s, loading: false }));
+        }
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        showToast("Error loading data from database");
+        setState(s => ({ ...s, loading: false }));
+      }
+    };
+
+    if (!data) {
+      fetchData();
+    }
+  }, [setState, data]);
+
 
   const handleManualAdd = (formData) => {
     const newItem = {
@@ -57,6 +120,7 @@ export default function SalesOrderPage({ state, setState }) {
             const parsed = parseSalesOrder(text);
             parsed.pdfUrl = URL.createObjectURL(file);
             parsed.pdfName = file.name;
+            parsed.rawFile = file; // Save raw file for uploading
             return parsed;
           })
         );
@@ -119,10 +183,83 @@ export default function SalesOrderPage({ state, setState }) {
     downloadBlob(JSON.stringify(data, null, 2), fileName.replace(/\.pdf$/i, "") + "_sales_order.json", "application/json");
   };
 
-  const handleSave = () => {
-    if (!data) return;
-    localStorage.setItem("sales_order_data", JSON.stringify(data));
-    alert("Data saved to LocalStorage successfully!");
+  const handleSave = async () => {
+    if (!data || data.length === 0) return;
+    
+    try {
+      showToast("Saving data and uploading PDFs...");
+      
+      const formattedData = await Promise.all(data.map(async (d) => {
+        let finalPdfUrl = d.pdfUrl;
+        
+        // Upload if we have a new PDF
+        if (d.rawFile) {
+          const fileExt = d.rawFile.name.split('.').pop();
+          const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('pdfs')
+            .upload(fileName, d.rawFile, { cacheControl: '3600', upsert: false });
+            
+          if (uploadError) throw uploadError;
+          
+          const { data: publicUrlData } = supabase.storage
+            .from('pdfs')
+            .getPublicUrl(fileName);
+            
+          finalPdfUrl = publicUrlData.publicUrl;
+        }
+
+        const reqPay = d.pricing?.find(p => p.description?.toLowerCase().includes("requisite payment"));
+        
+        // Helper to parse numerical fields safely
+        const parseNum = (val) => {
+          if (!val) return 0;
+          const parsed = parseFloat(val.toString().replace(/,/g, ''));
+          return isNaN(parsed) ? 0 : parsed;
+        };
+
+        // Helper to parse dates safely
+        const parseDate = (val) => {
+          if (!val || val === "-") return null;
+          const d = new Date(val);
+          return isNaN(d) ? null : d.toISOString();
+        };
+
+        return {
+          pdf_name: d.pdfName || "Manual Entry",
+          pdf_url: finalPdfUrl && finalPdfUrl.startsWith('http') ? finalPdfUrl : null,
+          name: d.sold_to_party?.name || d.receiver?.name || null,
+          sales_order_number: d.order_info?.sales_order_number || null,
+          sales_order_valid_from: parseDate(d.order_info?.sales_order_valid_from),
+          sales_order_valid_to: parseDate(d.order_info?.sales_order_valid_to),
+          office_area: d.company?.office_area || d.mine_info?.area || null,
+          mine: d.mine_info?.mine || d.line_items?.[0]?.mine || null,
+          quantity: parseNum(d.line_items?.[0]?.quantity || d.mine_info?.quantity_words),
+          rate_per_te: parseNum(reqPay?.rate_per_te || d.pricing?.[0]?.rate_per_te),
+          amount: parseNum(reqPay?.amount || d.totals?.requisite_payment || d.pricing?.[0]?.amount)
+        };
+      }));
+
+      const { error: dbError } = await supabase.from('sales_orders').insert(formattedData);
+      
+      if (dbError) throw dbError;
+      
+      showToast("Data and PDFs saved successfully!");
+      
+      // Update state to use remote URLs and clear rawFiles so they aren't uploaded twice
+      setState(s => ({
+        ...s,
+        data: s.data.map((item, index) => ({
+          ...item,
+          pdfUrl: formattedData[index].pdf_url,
+          rawFile: null
+        }))
+      }));
+    } catch (err) {
+      console.error("Supabase Save Error:", err);
+      showToast("Error saving: " + err.message);
+    }
   };
 
   const handleExportCsv = () => {
@@ -130,7 +267,22 @@ export default function SalesOrderPage({ state, setState }) {
     downloadBlob(toCSVSalesOrder(data), fileName.replace(/\.pdf$/i, "") + "_SO.csv", "text/csv");
   };
 
-  const handleDeleteRow = (index) => {
+  const handleDeleteRow = async (index) => {
+    const item = data[index];
+    
+    // If it has an id, delete it from Supabase
+    if (item && item.id) {
+      try {
+        const { error: dbError } = await supabase.from('sales_orders').delete().eq('id', item.id);
+        if (dbError) throw dbError;
+        showToast("Deleted from database successfully");
+      } catch (err) {
+        console.error("Error deleting from database:", err);
+        showToast("Error deleting from database: " + err.message);
+        return;
+      }
+    }
+
     setState((s) => {
       const newData = [...s.data];
       newData.splice(index, 1);
@@ -141,51 +293,87 @@ export default function SalesOrderPage({ state, setState }) {
     });
   };
 
-  const handleUpdateRow = (index, updatedRow) => {
-    setState((s) => {
-      const newData = [...s.data];
-      const item = { ...newData[index] };
-      
-      // Update nested objects safely
-      item.receiver = { ...item.receiver, name: updatedRow.name };
-      item.sold_to_party = { ...item.sold_to_party, name: updatedRow.name };
-      item.company = { ...item.company, office_area: updatedRow.office_area };
-      item.mine_info = { ...item.mine_info, mine: updatedRow.mine };
-      
-      item.order_info = { 
-        ...item.order_info, 
-        sales_order_number: updatedRow.sales_order_number,
-        sales_order_valid_from: updatedRow.sales_order_valid_from,
-        sales_order_valid_to: updatedRow.sales_order_valid_to
+  const handleUpdateRow = async (index, updatedRow) => {
+    const item = { ...data[index] };
+    
+    // Update nested objects safely
+    item.receiver = { ...item.receiver, name: updatedRow.name };
+    item.sold_to_party = { ...item.sold_to_party, name: updatedRow.name };
+    item.company = { ...item.company, office_area: updatedRow.office_area };
+    item.mine_info = { ...item.mine_info, mine: updatedRow.mine };
+    
+    item.order_info = { 
+      ...item.order_info, 
+      sales_order_number: updatedRow.sales_order_number,
+      sales_order_valid_from: updatedRow.sales_order_valid_from,
+      sales_order_valid_to: updatedRow.sales_order_valid_to
+    };
+    
+    if (item.line_items && item.line_items.length > 0) {
+      item.line_items[0] = {
+        ...item.line_items[0],
+        quantity: updatedRow.quantity,
+        mine: updatedRow.mine
       };
-      
-      if (item.line_items && item.line_items.length > 0) {
-        item.line_items[0] = {
-          ...item.line_items[0],
-          quantity: updatedRow.quantity,
-          mine: updatedRow.mine
+    }
+    
+    // Find Requisite Payment row to update
+    if (item.pricing && item.pricing.length > 0) {
+      const reqIndex = item.pricing.findIndex(p => p.description?.toLowerCase().includes("requisite payment"));
+      if (reqIndex !== -1) {
+        item.pricing[reqIndex] = {
+          ...item.pricing[reqIndex],
+          rate_per_te: updatedRow.rate_per_te,
+          amount: updatedRow.amount
+        };
+      } else {
+        // Fallback, update the first pricing item
+        item.pricing[0] = {
+          ...item.pricing[0],
+          rate_per_te: updatedRow.rate_per_te,
+          amount: updatedRow.amount
         };
       }
-      
-      // Find Requisite Payment row to update
-      if (item.pricing && item.pricing.length > 0) {
-        const reqIndex = item.pricing.findIndex(p => p.description?.toLowerCase().includes("requisite payment"));
-        if (reqIndex !== -1) {
-          item.pricing[reqIndex] = {
-            ...item.pricing[reqIndex],
-            rate_per_te: updatedRow.rate_per_te,
-            amount: updatedRow.amount
-          };
-        } else {
-          // Fallback, update the first pricing item
-          item.pricing[0] = {
-            ...item.pricing[0],
-            rate_per_te: updatedRow.rate_per_te,
-            amount: updatedRow.amount
-          };
-        }
-      }
+    }
 
+    // If it has an id, update it in Supabase
+    if (item.id) {
+      try {
+        const parseNum = (val) => {
+          if (!val) return 0;
+          const parsed = parseFloat(val.toString().replace(/,/g, ''));
+          return isNaN(parsed) ? 0 : parsed;
+        };
+        const parseDate = (val) => {
+          if (!val || val === "-") return null;
+          const d = new Date(val);
+          return isNaN(d) ? null : d.toISOString();
+        };
+
+        const updatePayload = {
+          name: updatedRow.name || null,
+          sales_order_number: updatedRow.sales_order_number || null,
+          sales_order_valid_from: parseDate(updatedRow.sales_order_valid_from),
+          sales_order_valid_to: parseDate(updatedRow.sales_order_valid_to),
+          office_area: updatedRow.office_area || null,
+          mine: updatedRow.mine || null,
+          quantity: parseNum(updatedRow.quantity),
+          rate_per_te: parseNum(updatedRow.rate_per_te),
+          amount: parseNum(updatedRow.amount)
+        };
+
+        const { error: dbError } = await supabase.from('sales_orders').update(updatePayload).eq('id', item.id);
+        if (dbError) throw dbError;
+        showToast("Updated in database successfully");
+      } catch (err) {
+        console.error("Error updating database:", err);
+        showToast("Error updating database: " + err.message);
+        return;
+      }
+    }
+
+    setState((s) => {
+      const newData = [...s.data];
       newData[index] = item;
       return { ...s, data: newData };
     });

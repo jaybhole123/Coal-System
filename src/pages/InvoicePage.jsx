@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { showToast } from "../utils/toast";
 import Dropzone from "../components/Dropzone";
 import InvoiceResults from "../components/InvoiceResults";
 import EditModal from "../components/EditModal";
@@ -75,7 +76,7 @@ export default function InvoicePage({ state, setState }) {
   const handleSave = () => {
     if (!data) return;
     localStorage.setItem("invoice_data", JSON.stringify(data));
-    alert("Data saved to LocalStorage successfully!");
+    showToast("Data saved to LocalStorage successfully!");
   };
 
   const handleExportCsv = () => {

@@ -104,7 +104,7 @@ export default function App() {
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [paymentState, setPaymentState] = useState(() => getInitialState("payment_advice_data", PAYMENT_INIT));
-  const [salesOrderState, setSalesOrderState] = useState(() => getInitialState("sales_order_data", SALES_ORDER_INIT));
+  const [salesOrderState, setSalesOrderState] = useState(SALES_ORDER_INIT);
   const [seclState, setSeclState] = useState(() => getInitialState("secl_data", SECL_INIT));
   const [invoiceState, setInvoiceState] = useState(() => getInitialState("app_invoice_state", INVOICE_INIT));
   const [seclPaymentAdviceState, setSeclPaymentAdviceState] = useState(() => getInitialState("app_secl_payment_advice_state", SECL_PAYMENT_ADVICE_INIT));

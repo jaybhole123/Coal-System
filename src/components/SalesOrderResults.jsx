@@ -28,6 +28,7 @@ export default function SalesOrderResults({
   const columnDropdownRef = useRef(null);
 
   const allTableColumns = [
+    { key: "sno", label: "S.No" },
     { key: "name", label: "Name" },
     { key: "sales_order_number", label: "Sales Order Number" },
     { key: "sales_order_valid_from", label: "Sales Order Valid From" },
@@ -120,11 +121,27 @@ export default function SalesOrderResults({
     return `${diffDays} days left`;
   };
 
+  const getExpiredDays = (validToDateStr) => {
+    if (!validToDateStr || validToDateStr === "-") return null;
+    const validTo = new Date(validToDateStr);
+    if (isNaN(validTo)) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    validTo.setHours(0, 0, 0, 0);
+
+    const diffTime = today - validTo;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return diffDays > 0 ? diffDays : null;
+  };
+
   const columnsForExport = [
     { key: "name", label: "Name" },
     { key: "sales_order_number", label: "Sales Order Number" },
     { key: "sales_order_valid_from", label: "Sales Order Valid From" },
     { key: "sales_order_valid_to", label: "Sales Order Valid To" },
+    { key: "left_days", label: "Left Days" },
     { key: "office_area", label: "Office Area" },
     { key: "quantity", label: "Quantity" },
     { key: "mine", label: "Mine" },
@@ -133,13 +150,44 @@ export default function SalesOrderResults({
   ];
 
   const handleExportExcel = () => {
-    const formatted = dataArray.map(d => buildSummaryRow(d));
+    const formatted = dataArray.map(d => {
+      const row = buildSummaryRow(d);
+      return { ...row, left_days: getDaysLeft(row.sales_order_valid_to) };
+    });
     exportToExcel(formatted, columnsForExport, fileName || "sales_orders");
   };
 
   const handleExportPdf = () => {
-    const formatted = dataArray.map(d => buildSummaryRow(d));
-    exportToPDF(formatted, columnsForExport, fileName || "sales_orders", "Sales Orders Summary");
+    const formatted = dataArray.map(d => {
+      const row = buildSummaryRow(d);
+      return { ...row, left_days: getDaysLeft(row.sales_order_valid_to) };
+    });
+
+    const extraColumns = [
+      { key: "name", label: "Name" },
+      { key: "sales_order_number", label: "Sales Order Number" },
+      { key: "left_days", label: "Left Days" },
+      { key: "days_since_expired", label: "Days Since Expired" }
+    ];
+
+    const extraData = dataArray.map(d => {
+      const summaryRow = buildSummaryRow(d);
+      const expiredDays = getExpiredDays(summaryRow.sales_order_valid_to);
+      return {
+        name: summaryRow.name,
+        sales_order_number: summaryRow.sales_order_number,
+        left_days: getDaysLeft(summaryRow.sales_order_valid_to),
+        days_since_expired: expiredDays !== null ? `${expiredDays} days ago` : "Valid"
+      };
+    });
+
+    const extraTables = [{
+      title: "Left Days Summary",
+      columns: extraColumns,
+      data: extraData
+    }];
+
+    exportToPDF(formatted, columnsForExport, fileName || "sales_orders", "Sales Orders Summary", extraTables);
   };
 
   return (
@@ -235,6 +283,7 @@ export default function SalesOrderResults({
                 <th>Name</th>
                 <th>Sales Order Number</th>
                 <th>Left Days</th>
+                <th>Days Since Expired</th>
               </tr>
             </thead>
             <tbody>
@@ -246,6 +295,43 @@ export default function SalesOrderResults({
                     <td data-label="Sales Order Number">{summaryRow.sales_order_number}</td>
                     <td data-label="Left Days" style={{ color: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "#dc2626" : "inherit", fontWeight: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "500" : "normal" }}>
                       {getDaysLeft(summaryRow.sales_order_valid_to)}
+                    </td>
+                    <td data-label="Days Since Expired">
+                      {(() => {
+                        const expiredDays = getExpiredDays(summaryRow.sales_order_valid_to);
+                        if (expiredDays === null) return (
+                          <span style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            background: "rgba(34, 197, 94, 0.1)",
+                            color: "#16a34a",
+                            fontWeight: "600",
+                            fontSize: "12px",
+                            padding: "3px 10px",
+                            borderRadius: "999px",
+                            border: "1px solid rgba(34, 197, 94, 0.2)"
+                          }}>
+                            Valid
+                          </span>
+                        );
+                        return (
+                          <span style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            background: "rgba(220, 38, 38, 0.08)",
+                            color: "#b91c1c",
+                            fontWeight: "600",
+                            fontSize: "12px",
+                            padding: "3px 10px",
+                            borderRadius: "999px",
+                            border: "1px solid rgba(220, 38, 38, 0.2)"
+                          }}>
+                            ⏱ {expiredDays} {expiredDays === 1 ? "day" : "days"} ago
+                          </span>
+                        );
+                      })()}
                     </td>
                   </tr>
                 );
@@ -319,6 +405,7 @@ export default function SalesOrderResults({
           <table className="stable">
             <thead>
               <tr>
+                {visibleCols.sno && <th style={{ width: "52px", textAlign: "center" }}>S.No</th>}
                 {visibleCols.name && <th>Name</th>}
                 {visibleCols.sales_order_number && <th>Sales Order Number</th>}
                 {visibleCols.sales_order_valid_from && <th>Sales Order Valid From</th>}
@@ -334,9 +421,10 @@ export default function SalesOrderResults({
               </tr>
             </thead>
             <tbody>
-              {filteredData.map(({ raw: d, summary: summaryRow, idx: index }) => {
+              {filteredData.map(({ raw: d, summary: summaryRow, idx: index }, rowNum) => {
                 return (
                   <tr key={index}>
+                    {visibleCols.sno && <td data-label="S.No" style={{ textAlign: "center", color: "var(--muted)", fontFamily: "var(--font-mono, monospace)", fontSize: "12px", fontWeight: 600 }}>{String(rowNum + 1).padStart(2, "0")}</td>}
                     {visibleCols.name && <td data-label="Name"><HighlightText text={summaryRow.name} highlight={searchTerm} /></td>}
                     {visibleCols.sales_order_number && <td data-label="Sales Order Number"><HighlightText text={summaryRow.sales_order_number} highlight={searchTerm} /></td>}
                     {visibleCols.sales_order_valid_from && <td data-label="Sales Order Valid From"><HighlightText text={summaryRow.sales_order_valid_from} highlight={searchTerm} /></td>}

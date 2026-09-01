@@ -37,6 +37,21 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
     return `${diffDays} days left`;
   };
 
+  const getExpiredDays = (validToDateStr) => {
+    if (!validToDateStr || validToDateStr === "-" || validToDateStr === "Not Found") return null;
+    const validTo = new Date(validToDateStr);
+    if (isNaN(validTo)) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    validTo.setHours(0, 0, 0, 0);
+
+    const diffTime = today - validTo;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return diffDays > 0 ? diffDays : null;
+  };
+
   // Ensure data is array
   const allItems = Array.isArray(data) ? data : [data];
 
@@ -266,18 +281,40 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                     <th>Mines Name</th>
                     <th>Customer Name</th>
                     <th>Left Days</th>
+                    <th>Days Since Expired</th>
                   </tr>
                 </thead>
                 <tbody>
                   {allItems.map((d, index) => {
                     const daysLeft = getDaysLeft(d.dueDate);
                     const isExpired = daysLeft === "Expired";
+                    const expiredDays = getExpiredDays(d.dueDate);
                     return (
                       <tr key={`left-days-${index}`}>
                         <td data-label="Mines Name">{d.minesName || "-"}</td>
                         <td data-label="Customer Name">{d.customerName || "-"}</td>
                         <td data-label="Left Days" style={{ color: isExpired ? "#dc2626" : "inherit", fontWeight: isExpired ? "500" : "normal" }}>
                           {daysLeft}
+                        </td>
+                        <td data-label="Days Since Expired">
+                          {expiredDays === null ? (
+                            <span style={{ color: "#6b7280" }}>-</span>
+                          ) : (
+                            <span style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "5px",
+                              background: "rgba(220, 38, 38, 0.08)",
+                              color: "#b91c1c",
+                              fontWeight: "600",
+                              fontSize: "12px",
+                              padding: "3px 10px",
+                              borderRadius: "999px",
+                              border: "1px solid rgba(220, 38, 38, 0.2)"
+                            }}>
+                              ⏱ {expiredDays} {expiredDays === 1 ? "day" : "days"} ago
+                            </span>
+                          )}
                         </td>
                       </tr>
                     );
