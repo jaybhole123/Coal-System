@@ -5,7 +5,7 @@ import { InfoCard } from "./Cards";
 import EditModal from "./EditModal";
 import { exportToExcel, exportToPDF } from "../utils/exportHelpers";
 
-export default function SECLIntimationResults({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv, onSave, onDeleteRow, onUpdateRow, onAddManual }) {
+export default function SECLIntimationResults({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv, onSave, onDeleteRow, onUpdateRow, onAddManual, currentPage = 1, totalCount = 0, pageSize = 10, isFetching = false, onPageChange }) {
   const dataArray = Array.isArray(data) ? data : [data];
   const allItems = dataArray.flatMap(d => 
     (d.items || []).map(item => ({ ...item, _meta: d.meta, pdfUrl: d.pdfUrl, pdfName: d.pdfName }))
@@ -276,7 +276,7 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
                   {filteredItems.map((row, i) => {
                     return (
                       <tr key={i}>
-                        {visibleCols.srNo && <td style={{ textAlign: "center", fontWeight: "600", color: "var(--muted)", fontSize: "13px" }}>{i + 1}</td>}
+                        {visibleCols.srNo && <td style={{ textAlign: "center", fontWeight: "600", color: "var(--muted)", fontSize: "13px", fontFamily: "var(--font-mono, monospace)" }}>{String((currentPage - 1) * pageSize + i + 1).padStart(2, "0")}</td>}
                         {visibleCols.bidderName && <td><HighlightText text={row._meta?.['Name of Bidder'] || "—"} highlight={searchTerm} /></td>}
                         {visibleCols.auctionDate && <td><HighlightText text={row._meta?.['Date of Auction'] || "—"} highlight={searchTerm} /></td>}
                         {visibleCols.sellerName && <td><HighlightText text={row["Seller Name"] || "—"} highlight={searchTerm} /></td>}
@@ -338,6 +338,46 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
               </div>
             )}
           </div>
+
+          {/* PAGINATION CONTROLS */}
+          {onPageChange && totalCount > pageSize && (() => {
+            const totalPages = Math.ceil(totalCount / pageSize);
+            const pages = [];
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+            for (let p = startPage; p <= endPage; p++) pages.push(p);
+
+            return (
+              <div style={{ padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--line)", background: "var(--panel)" }}>
+                <div style={{ fontSize: "13px", color: "var(--muted)" }}>
+                  {isFetching ? "Loading..." : `Showing ${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, totalCount)} of ${totalCount} records`}
+                </div>
+                <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                  <button
+                    onClick={() => onPageChange(currentPage - 1)}
+                    disabled={currentPage <= 1 || isFetching}
+                    style={{ padding: "5px 10px", borderRadius: "5px", border: "1px solid var(--line)", background: currentPage <= 1 ? "#f3f4f6" : "white", cursor: currentPage <= 1 ? "not-allowed" : "pointer", color: currentPage <= 1 ? "#9ca3af" : "var(--text)", fontSize: "13px", fontWeight: "500" }}
+                  >← Prev</button>
+                  {startPage > 1 && <span style={{ padding: "0 4px", color: "var(--muted)" }}>...</span>}
+                  {pages.map(p => (
+                    <button
+                      key={p}
+                      onClick={() => onPageChange(p)}
+                      disabled={isFetching}
+                      style={{ padding: "5px 10px", borderRadius: "5px", border: `1px solid ${p === currentPage ? "var(--primary)" : "var(--line)"}`, background: p === currentPage ? "var(--primary)" : "white", color: p === currentPage ? "white" : "var(--text)", fontWeight: p === currentPage ? "700" : "400", cursor: "pointer", fontSize: "13px", minWidth: "34px" }}
+                    >{p}</button>
+                  ))}
+                  {endPage < totalPages && <span style={{ padding: "0 4px", color: "var(--muted)" }}>...</span>}
+                  <button
+                    onClick={() => onPageChange(currentPage + 1)}
+                    disabled={currentPage >= totalPages || isFetching}
+                    style={{ padding: "5px 10px", borderRadius: "5px", border: "1px solid var(--line)", background: currentPage >= totalPages ? "#f3f4f6" : "white", cursor: currentPage >= totalPages ? "not-allowed" : "pointer", color: currentPage >= totalPages ? "#9ca3af" : "var(--text)", fontSize: "13px", fontWeight: "500" }}
+                  >Next →</button>
+                </div>
+              </div>
+            );
+          })()}
+
           <div style={{ padding: "16px 20px", display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--line)", background: "var(--panel)", borderBottomLeftRadius: "var(--radius)", borderBottomRightRadius: "var(--radius)" }}>
             <button className="btn" onClick={onSave} style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "var(--ember-bright)", color: "white", padding: "8px 24px", fontSize: "14px", fontWeight: "600", border: "none", borderRadius: "6px", cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>

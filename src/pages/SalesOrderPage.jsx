@@ -11,16 +11,31 @@ import { supabase } from "../utils/supabase";
  * Props: state & setState passed from App so navigating away and back preserves data.
  */
 export default function SalesOrderPage({ state, setState }) {
+  const PAGE_SIZE = 10;
   const { view, loading, loadingName, error, data, fileName } = state;
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isFetching, setIsFetching] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsFetching(true);
       try {
         setState(s => ({ ...s, loading: true, loadingName: "Loading data from database..." }));
-        const { data: dbData, error: dbError } = await supabase.from('sales_orders').select('*').order('created_at', { ascending: false });
-        
+        const from = (currentPage - 1) * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
+
+        const { data: dbData, error: dbError, count } = await supabase
+          .from('sales_orders')
+          .select('*', { count: 'exact' })
+          .order('created_at', { ascending: false })
+          .range(from, to);
+
         if (dbError) throw dbError;
+
+        setTotalCount(count || 0);
 
         if (dbData && dbData.length > 0) {
           const mappedData = dbData.map(row => ({
@@ -59,6 +74,8 @@ export default function SalesOrderPage({ state, setState }) {
             fileName: "Database Data",
             loading: false 
           }));
+        } else if (currentPage === 1) {
+          setState(s => ({ ...s, loading: false, view: "drop", data: null, fileName: "" }));
         } else {
           setState(s => ({ ...s, loading: false }));
         }
@@ -66,13 +83,13 @@ export default function SalesOrderPage({ state, setState }) {
         console.error("Error fetching data:", err);
         showToast("Error loading data from database");
         setState(s => ({ ...s, loading: false }));
+      } finally {
+        setIsFetching(false);
       }
     };
 
-    if (!data) {
-      fetchData();
-    }
-  }, [setState, data]);
+    fetchData();
+  }, [currentPage, refreshTrigger, setState]);
 
 
   const handleManualAdd = async (formData) => {
@@ -251,10 +268,16 @@ export default function SalesOrderPage({ state, setState }) {
   const handleSave = async () => {
     if (!data || data.length === 0) return;
     
+    const newItemsData = data.filter(d => !d.id);
+    if (newItemsData.length === 0) {
+      showToast("No new data to save.");
+      return;
+    }
+
     try {
-      showToast("Saving data and uploading PDFs...");
+      showToast("Saving new data and uploading PDFs...");
       
-      const formattedData = await Promise.all(data.map(async (d) => {
+      const formattedData = await Promise.all(newItemsData.map(async (d) => {
         let finalPdfUrl = d.pdfUrl;
         
         // Upload if we have a new PDF
@@ -312,15 +335,8 @@ export default function SalesOrderPage({ state, setState }) {
       
       showToast("Data and PDFs saved successfully!");
       
-      // Update state to use remote URLs and clear rawFiles so they aren't uploaded twice
-      setState(s => ({
-        ...s,
-        data: s.data.map((item, index) => ({
-          ...item,
-          pdfUrl: formattedData[index].pdf_url,
-          rawFile: null
-        }))
-      }));
+      // Trigger a re-fetch to get correct IDs from DB without setting data to null
+      setRefreshTrigger(prev => prev + 1);
     } catch (err) {
       console.error("Supabase Save Error:", err);
       showToast("Error saving: " + err.message);
@@ -507,6 +523,14 @@ export default function SalesOrderPage({ state, setState }) {
           onDeleteRow={handleDeleteRow}
           onUpdateRow={handleUpdateRow}
           onAddManual={() => setIsModalOpen(true)}
+          currentPage={currentPage}
+          totalCount={totalCount}
+          pageSize={PAGE_SIZE}
+          isFetching={isFetching}
+          onPageChange={(page) => {
+            setCurrentPage(page);
+            setState(s => ({ ...s, data: null }));
+          }}
         />
       )}
 

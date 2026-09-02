@@ -11,16 +11,32 @@ import { supabase } from "../utils/supabase";
  * SECLIntimationPage — owns the upload/result state for this page.
  */
 export default function SECLIntimationPage({ state, setState }) {
+  const PAGE_SIZE = 10;
   const [activeTab, setActiveTab] = useState("format1");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isFetching, setIsFetching] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { view, loading, loadingName, error, data, fileName } = state;
 
   useEffect(() => {
     const fetchSupabaseData = async () => {
+      setIsFetching(true);
       try {
-        const { data: dbData, error } = await supabase.from('secl_intimation_format_1').select('*').order('created_at', { ascending: false });
+        const from = (currentPage - 1) * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
+
+        const { data: dbData, error, count } = await supabase
+          .from('secl_intimation_format_1')
+          .select('*', { count: 'exact' })
+          .order('created_at', { ascending: false })
+          .range(from, to);
+
         if (error) throw error;
-        
+
+        setTotalCount(count || 0);
+
         if (dbData && dbData.length > 0) {
           const formattedData = dbData.map(row => ({
             id: row.id,
@@ -47,17 +63,19 @@ export default function SECLIntimationPage({ state, setState }) {
             data: formattedData,
             fileName: "Loaded from Supabase"
           }));
+        } else if (currentPage === 1) {
+          // No data at all
+          setState(s => ({ ...s, view: "drop", data: null, fileName: "" }));
         }
       } catch (err) {
         console.error("Failed to fetch from Supabase:", err);
+      } finally {
+        setIsFetching(false);
       }
     };
 
-    // Fetch on mount if no data is present yet
-    if (!data) {
-      fetchSupabaseData();
-    }
-  }, [setState, data]);
+    fetchSupabaseData();
+  }, [currentPage, refreshTrigger, setState]);
 
 
   const handleManualAdd = async (formData) => {
@@ -188,9 +206,16 @@ export default function SECLIntimationPage({ state, setState }) {
   const handleSave = async () => {
     if (!data) return;
 
+    const newItemsData = data.filter(d => !d.id);
+    if (newItemsData.length === 0) {
+      showToast("No new data to save.");
+      return;
+    }
+
     try {
+      showToast("Saving new data and uploading PDFs...");
       const allItems = await Promise.all(
-        data.flatMap((d) =>
+        newItemsData.flatMap((d) =>
           (d.items || []).map(async (item) => {
             let pdf_url = d.pdfUrl || null;
 
@@ -235,10 +260,14 @@ export default function SECLIntimationPage({ state, setState }) {
         )
       );
 
-      const { error } = await supabase.from('secl_intimation_format_1').insert(allItems);
+      const { data: insertedData, error } = await supabase.from('secl_intimation_format_1').insert(allItems).select();
       if (error) throw error;
 
       showToast("Data saved to Supabase successfully!");
+      
+      // Trigger a re-fetch to get correct IDs from DB without setting data to null
+      setRefreshTrigger(prev => prev + 1);
+
     } catch (err) {
       console.error("Supabase Save Error:", err);
       showToast("Error saving to Supabase");
@@ -424,6 +453,14 @@ export default function SECLIntimationPage({ state, setState }) {
           onDeleteRow={handleDeleteRow}
           onUpdateRow={handleUpdateRow}
           onAddManual={() => setIsModalOpen(true)}
+          currentPage={currentPage}
+          totalCount={totalCount}
+          pageSize={PAGE_SIZE}
+          isFetching={isFetching}
+          onPageChange={(page) => {
+            setCurrentPage(page);
+            setState(s => ({ ...s, data: null }));
+          }}
         />
       )}
         </div>
