@@ -212,7 +212,7 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
                 placeholder="Search..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ padding: "6px 12px 6px 30px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "13px", width: "220px", outline: "none", color: "var(--text)" }}
+                style={{ padding: "6px 12px 6px 30px", border: "1px solid var(--line)", borderRadius: "6px", fontSize: "13px", width: "220px", outline: "none", color: "var(--text)", background: "transparent" }}
               />
             </div>
             
@@ -221,32 +221,30 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
               <button 
                 className="btn ghost" 
                 onClick={() => setShowColumnDropdown(!showColumnDropdown)}
-                style={{ display: "inline-flex", alignItems: "center", gap: "8px", border: "1px solid #d1d5db", borderRadius: "6px", padding: "6px 12px", background: "var(--surface, #fff)", color: "var(--text, #333)", fontSize: "14px", fontWeight: "500", cursor: "pointer", transition: "all 0.15s ease", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}
-                onMouseOver={(e) => { e.currentTarget.style.background = "#f9fafb"; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = "var(--surface, #fff)"; }}
+                style={{ display: "inline-flex", alignItems: "center", gap: "8px", borderRadius: "6px", padding: "6px 12px", fontSize: "14px", fontWeight: "500", cursor: "pointer", transition: "all 0.15s ease" }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line></svg>
                 Columns
               </button>
               {showColumnDropdown && (
-                <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: "220px", background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)", zIndex: 100, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                  <div style={{ padding: "12px 14px", borderBottom: "1px solid #f3f4f6", fontSize: "13px", fontWeight: "600", color: "#374151", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: "220px", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)", zIndex: 100, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                  <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--line)", fontSize: "13px", fontWeight: "600", color: "var(--text)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span>Toggle Columns</span>
                   </div>
-                  <div style={{ padding: "10px 14px", display: "flex", gap: "12px", borderBottom: "1px solid #f3f4f6", fontSize: "12px", background: "#f9fafb" }}>
-                    <button onClick={() => setAllColumns(true)} style={{ color: "#2563eb", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "600" }}>Select All</button>
-                    <button onClick={() => setAllColumns(false)} style={{ color: "#6b7280", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "500" }}>Deselect All</button>
+                  <div style={{ padding: "10px 14px", display: "flex", gap: "12px", borderBottom: "1px solid var(--line)", fontSize: "12px", background: "rgba(0,0,0,0.02)" }}>
+                    <button onClick={() => setAllColumns(true)} style={{ color: "var(--primary, #2563eb)", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "600" }}>Select All</button>
+                    <button onClick={() => setAllColumns(false)} style={{ color: "var(--muted)", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "500" }}>Deselect All</button>
                   </div>
                   <div style={{ maxHeight: "220px", overflowY: "auto", padding: "8px 0" }}>
                     {allTableColumns.map(col => (
-                      <label key={col.key} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 16px", cursor: "pointer", fontSize: "13px", color: "#4b5563", transition: "background 0.15s", userSelect: "none" }} onMouseOver={(e) => e.currentTarget.style.background = "#f3f4f6"} onMouseOut={(e) => e.currentTarget.style.background = "transparent"}>
+                      <label key={col.key} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 14px", cursor: "pointer", transition: "background 0.15s ease", color: "var(--text)" }} onMouseOver={e => e.currentTarget.style.background="rgba(0,0,0,0.04)"} onMouseOut={e => e.currentTarget.style.background="transparent"}>
                         <input 
                           type="checkbox" 
-                          checked={visibleCols[col.key]} 
-                          onChange={() => toggleColumn(col.key)} 
-                          style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb", margin: 0 }}
+                          checked={visibleCols[col.key] || false}
+                          onChange={(e) => setVisibleCols(prev => ({ ...prev, [col.key]: e.target.checked }))}
+                          style={{ cursor: "pointer", width: "16px", height: "16px", accentColor: "var(--primary, #2563eb)" }}
                         />
-                        {col.label}
+                        <span style={{ fontSize: "13px", userSelect: "none" }}>{col.label}</span>
                       </label>
                     ))}
                   </div>
@@ -276,15 +274,15 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
                   {filteredItems.map((row, i) => {
                     return (
                       <tr key={i}>
-                        {visibleCols.srNo && <td style={{ textAlign: "center", fontWeight: "600", color: "var(--muted)", fontSize: "13px", fontFamily: "var(--font-mono, monospace)" }}>{String((currentPage - 1) * pageSize + i + 1).padStart(2, "0")}</td>}
-                        {visibleCols.bidderName && <td><HighlightText text={row._meta?.['Name of Bidder'] || "—"} highlight={searchTerm} /></td>}
-                        {visibleCols.auctionDate && <td><HighlightText text={row._meta?.['Date of Auction'] || "—"} highlight={searchTerm} /></td>}
-                        {visibleCols.sellerName && <td><HighlightText text={row["Seller Name"] || "—"} highlight={searchTerm} /></td>}
-                        {visibleCols.sourceName && <td><HighlightText text={row["Source Name"] || "—"} highlight={searchTerm} /></td>}
-                        {visibleCols.gradeSize && <td><HighlightText text={row["Grade / Size"] || "—"} highlight={searchTerm} /></td>}
-                        {visibleCols.qtyAllotted && <td><HighlightText text={row["Quantity Allotted"] != null && row["Quantity Allotted"] !== "" ? String(row["Quantity Allotted"]) : "—"} highlight={searchTerm} /></td>}
-                        {visibleCols.bidPrice && <td><HighlightText text={row["Winning Bid Price (Rs/MT)"] != null && row["Winning Bid Price (Rs/MT)"] !== "" ? String(row["Winning Bid Price (Rs/MT)"]) : "—"} highlight={searchTerm} /></td>}
-                        {visibleCols.preview && <td>
+                        {visibleCols.srNo && <td data-label="S.No." style={{ textAlign: "center", fontWeight: "600", color: "var(--muted)", fontSize: "13px", fontFamily: "var(--font-mono, monospace)" }}>{String((currentPage - 1) * pageSize + i + 1).padStart(2, "0")}</td>}
+                        {visibleCols.bidderName && <td data-label="Name of Bidder" style={{ fontWeight: "600", color: "var(--text)" }}><HighlightText text={row._meta?.['Name of Bidder'] || "—"} highlight={searchTerm} /></td>}
+                        {visibleCols.auctionDate && <td data-label="Date of Auction"><HighlightText text={row._meta?.['Date of Auction'] || "—"} highlight={searchTerm} /></td>}
+                        {visibleCols.sellerName && <td data-label="Seller Name"><HighlightText text={row["Seller Name"] || "—"} highlight={searchTerm} /></td>}
+                        {visibleCols.sourceName && <td data-label="Source Name"><HighlightText text={row["Source Name"] || "—"} highlight={searchTerm} /></td>}
+                        {visibleCols.gradeSize && <td data-label="Grade / Size"><HighlightText text={row["Grade / Size"] || "—"} highlight={searchTerm} /></td>}
+                        {visibleCols.qtyAllotted && <td data-label="Quantity Allotted"><HighlightText text={row["Quantity Allotted"] != null && row["Quantity Allotted"] !== "" ? String(row["Quantity Allotted"]) : "—"} highlight={searchTerm} /></td>}
+                        {visibleCols.bidPrice && <td data-label="Winning Bid Price Rs/MT"><HighlightText text={row["Winning Bid Price (Rs/MT)"] != null && row["Winning Bid Price (Rs/MT)"] !== "" ? String(row["Winning Bid Price (Rs/MT)"]) : "—"} highlight={searchTerm} /></td>}
+                        {visibleCols.preview && <td data-label="Preview">
                           {row.pdfUrl ? (
                             <a href={row.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
                               View PDF
@@ -294,37 +292,39 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
                           )}
                         </td>}
                         {visibleCols.action && (
-                          <td style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                            <button
-                              style={{
-                                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
-                                padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px",
-                                border: "1px solid var(--border)", background: "white",
-                                color: "var(--text)", boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                                transition: "all 0.15s ease",
-                              }}
-                              onMouseOver={(e) => { e.currentTarget.style.background = "#f4f4f5"; }}
-                              onMouseOut={(e) => { e.currentTarget.style.background = "white"; }}
-                              onClick={() => handleEditClick(i)}
-                              title="Edit"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                              Edit
-                            </button>
-                            <button
-                              style={{
-                                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
-                                padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px",
-                                border: "1px solid #fee2e2", background: "#fef2f2", color: "#dc2626",
-                                boxShadow: "0 1px 2px rgba(0,0,0,0.05)", transition: "all 0.15s ease",
-                              }}
-                              onMouseOver={(e) => { e.currentTarget.style.background = "#fee2e2"; }}
-                              onMouseOut={(e) => { e.currentTarget.style.background = "#fef2f2"; }}
-                              onClick={() => { if(window.confirm("Are you sure you want to delete this row?")) { onDeleteRow && onDeleteRow(i); } }}
-                              title="Delete"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>Delete
-                            </button>
+                          <td data-label="Action">
+                            <div style={{ display: "flex", gap: "6px", alignItems: "center", justifyContent: "flex-end" }}>
+                              <button
+                                style={{
+                                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
+                                  padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px",
+                                  border: "1px solid rgba(37, 99, 235, 0.3)", background: "transparent",
+                                  color: "var(--primary, #2563eb)", boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                                  transition: "all 0.15s ease",
+                                }}
+                                onMouseOver={(e) => { e.currentTarget.style.background = "rgba(37, 99, 235, 0.1)"; }}
+                                onMouseOut={(e) => { e.currentTarget.style.background = "transparent"; }}
+                                onClick={() => handleEditClick(i)}
+                                title="Edit"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                Edit
+                              </button>
+                              <button
+                                style={{
+                                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
+                                  padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px",
+                                  border: "1px solid rgba(220, 38, 38, 0.3)", background: "transparent", color: "#dc2626",
+                                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)", transition: "all 0.15s ease",
+                                }}
+                                onMouseOver={(e) => { e.currentTarget.style.background = "rgba(220, 38, 38, 0.1)"; }}
+                                onMouseOut={(e) => { e.currentTarget.style.background = "transparent"; }}
+                                onClick={() => { if(window.confirm("Are you sure you want to delete this row?")) { onDeleteRow && onDeleteRow(i); } }}
+                                title="Delete"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>Delete
+                              </button>
+                            </div>
                           </td>
                         )}
                       </tr>

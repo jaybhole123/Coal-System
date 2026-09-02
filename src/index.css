@@ -880,7 +880,7 @@ body {
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 12px;
-    background: #fff;
+    background: var(--panel);
     box-shadow: 0 2px 4px rgba(0,0,0,0.02);
   }
   .stable td {
@@ -889,7 +889,7 @@ body {
     align-items: center;
     padding: 10px 0;
     border: none;
-    border-bottom: 1px dashed rgba(0,0,0,0.1);
+    border-bottom: 1px dashed var(--line);
     text-align: right;
     white-space: normal;
   }

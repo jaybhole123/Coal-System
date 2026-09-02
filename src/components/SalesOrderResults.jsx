@@ -40,7 +40,6 @@ export default function SalesOrderResults({
     { key: "sales_order_valid_to", label: "Sales Order Valid To" },
     { key: "office_area", label: "Office Area" },
     { key: "quantity", label: "Quantity" },
-    { key: "mine", label: "Mine" },
     { key: "rate_per_te", label: "Rate Per TE(INR)" },
     { key: "amount", label: "Amount(INR)" },
     { key: "left_days", label: "Left Days" },
@@ -296,7 +295,7 @@ export default function SalesOrderResults({
                 const summaryRow = buildSummaryRow(d);
                 return (
                   <tr key={`left-days-${index}`}>
-                    <td data-label="Name">{summaryRow.name}</td>
+                    <td data-label="Name" style={{ fontWeight: "600", color: "var(--text)" }}>{summaryRow.name}</td>
                     <td data-label="Sales Order Number">{summaryRow.sales_order_number}</td>
                     <td data-label="Left Days" style={{ color: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "#dc2626" : "inherit", fontWeight: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "500" : "normal" }}>
                       {getDaysLeft(summaryRow.sales_order_valid_to)}
@@ -363,50 +362,48 @@ export default function SalesOrderResults({
                 placeholder="Search..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ padding: "6px 12px 6px 30px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "13px", width: "220px", outline: "none", color: "var(--text)" }}
+                style={{ padding: "6px 12px 6px 30px", border: "1px solid var(--line)", borderRadius: "6px", fontSize: "13px", width: "220px", outline: "none", color: "var(--text)", background: "transparent" }}
               />
             </div>
 
             {/* COLUMNS TOGGLE DROPDOWN */}
             <div style={{ position: "relative" }} ref={columnDropdownRef}>
               <button 
-              className="btn ghost" 
-              onClick={() => setShowColumnDropdown(!showColumnDropdown)}
-              style={{ display: "inline-flex", alignItems: "center", gap: "8px", border: "1px solid #d1d5db", borderRadius: "6px", padding: "6px 12px", background: "var(--surface, #fff)", color: "var(--text, #333)", fontSize: "14px", fontWeight: "500", cursor: "pointer", transition: "all 0.15s ease", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}
-              onMouseOver={(e) => { e.currentTarget.style.background = "#f9fafb"; }}
-              onMouseOut={(e) => { e.currentTarget.style.background = "var(--surface, #fff)"; }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line></svg>
-              Columns
-            </button>
-            {showColumnDropdown && (
-              <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: "220px", background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)", zIndex: 100, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                <div style={{ padding: "12px 14px", borderBottom: "1px solid #f3f4f6", fontSize: "13px", fontWeight: "600", color: "#374151", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span>Toggle Columns</span>
-                </div>
-                <div style={{ padding: "10px 14px", display: "flex", gap: "12px", borderBottom: "1px solid #f3f4f6", fontSize: "12px", background: "#f9fafb" }}>
-                  <button onClick={() => setAllColumns(true)} style={{ color: "#2563eb", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "600" }}>Select All</button>
-                  <button onClick={() => setAllColumns(false)} style={{ color: "#6b7280", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "500" }}>Deselect All</button>
-                </div>
-                <div style={{ maxHeight: "220px", overflowY: "auto", padding: "8px 0" }}>
-                  {allTableColumns.map(col => (
-                    <label key={col.key} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 16px", cursor: "pointer", fontSize: "13px", color: "#4b5563", transition: "background 0.15s", userSelect: "none" }} onMouseOver={(e) => e.currentTarget.style.background = "#f3f4f6"} onMouseOut={(e) => e.currentTarget.style.background = "transparent"}>
-                      <input 
-                        type="checkbox" 
-                        checked={visibleCols[col.key]} 
-                        onChange={() => toggleColumn(col.key)} 
-                        style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb", margin: 0 }}
-                      />
-                      {col.label}
-                    </label>
-                  ))}
+                className="btn ghost" 
+                onClick={() => setShowColumnDropdown(!showColumnDropdown)}
+                style={{ display: "inline-flex", alignItems: "center", gap: "8px", borderRadius: "6px", padding: "6px 12px", fontSize: "14px", fontWeight: "500", cursor: "pointer", transition: "all 0.15s ease" }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line></svg>
+                Columns
+              </button>
+              {showColumnDropdown && (
+                <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: "220px", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)", zIndex: 100, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                  <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--line)", fontSize: "13px", fontWeight: "600", color: "var(--text)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>Toggle Columns</span>
+                  </div>
+                  <div style={{ padding: "10px 14px", display: "flex", gap: "12px", borderBottom: "1px solid var(--line)", fontSize: "12px", background: "rgba(0,0,0,0.02)" }}>
+                    <button onClick={() => setAllColumns(true)} style={{ color: "var(--primary, #2563eb)", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "600" }}>Select All</button>
+                    <button onClick={() => setAllColumns(false)} style={{ color: "var(--muted)", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "500" }}>Deselect All</button>
+                  </div>
+                  <div style={{ maxHeight: "220px", overflowY: "auto", padding: "8px 0" }}>
+                    {allTableColumns.map(col => (
+                      <label key={col.key} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 14px", cursor: "pointer", transition: "background 0.15s ease", color: "var(--text)" }} onMouseOver={e => e.currentTarget.style.background="rgba(0,0,0,0.04)"} onMouseOut={e => e.currentTarget.style.background="transparent"}>
+                        <input 
+                          type="checkbox" 
+                          checked={visibleCols[col.key] || false}
+                          onChange={() => toggleColumn(col.key)}
+                          style={{ cursor: "pointer", width: "16px", height: "16px", accentColor: "var(--primary, #2563eb)", margin: 0 }}
+                        />
+                        <span style={{ fontSize: "13px", userSelect: "none" }}>{col.label}</span>
+                      </label>
+                    ))}
                   </div>
                 </div>
               )}
-              </div>
             </div>
           </div>
-          <div className="table-scroll" style={{ overflowX: "auto" }}>
+        </div>
+        <div className="table-scroll" style={{ overflowX: "auto" }}>
           <table className="stable">
             <thead>
               <tr>
@@ -430,7 +427,7 @@ export default function SalesOrderResults({
                 return (
                   <tr key={index}>
                     {visibleCols.sno && <td data-label="S.No" style={{ textAlign: "center", color: "var(--muted)", fontFamily: "var(--font-mono, monospace)", fontSize: "12px", fontWeight: 600 }}>{String((currentPage - 1) * pageSize + rowNum + 1).padStart(2, "0")}</td>}
-                    {visibleCols.name && <td data-label="Name"><HighlightText text={summaryRow.name} highlight={searchTerm} /></td>}
+                    {visibleCols.name && <td data-label="Name" style={{ fontWeight: "600", color: "var(--text)" }}><HighlightText text={summaryRow.name} highlight={searchTerm} /></td>}
                     {visibleCols.sales_order_number && <td data-label="Sales Order Number"><HighlightText text={summaryRow.sales_order_number} highlight={searchTerm} /></td>}
                     {visibleCols.sales_order_valid_from && <td data-label="Sales Order Valid From"><HighlightText text={summaryRow.sales_order_valid_from} highlight={searchTerm} /></td>}
                     {visibleCols.sales_order_valid_to && <td data-label="Sales Order Valid To"><HighlightText text={summaryRow.sales_order_valid_to} highlight={searchTerm} /></td>}
@@ -457,12 +454,12 @@ export default function SalesOrderResults({
                           style={{
                             cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
                             padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px",
-                            border: "1px solid #dcfce7", background: "#f0fdf4",
+                            border: "1px solid rgba(22, 163, 74, 0.3)", background: "transparent",
                             color: "#16a34a", boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
                             transition: "all 0.15s ease",
                           }}
-                          onMouseOver={(e) => { e.currentTarget.style.background = "#dcfce7"; }}
-                          onMouseOut={(e) => { e.currentTarget.style.background = "#f0fdf4"; }}
+                          onMouseOver={(e) => { e.currentTarget.style.background = "rgba(22, 163, 74, 0.1)"; }}
+                          onMouseOut={(e) => { e.currentTarget.style.background = "transparent"; }}
                           onClick={() => handleEditClick(index)}
                         title="Edit"
                       >
@@ -473,11 +470,11 @@ export default function SalesOrderResults({
                         style={{
                           cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
                           padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px",
-                          border: "1px solid #fee2e2", background: "#fef2f2", color: "#dc2626",
+                          border: "1px solid rgba(220, 38, 38, 0.3)", background: "transparent", color: "#dc2626",
                           boxShadow: "0 1px 2px rgba(0,0,0,0.05)", transition: "all 0.15s ease",
                         }}
-                        onMouseOver={(e) => { e.currentTarget.style.background = "#fee2e2"; }}
-                        onMouseOut={(e) => { e.currentTarget.style.background = "#fef2f2"; }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = "rgba(220, 38, 38, 0.1)"; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = "transparent"; }}
                         onClick={() => { if(window.confirm("Are you sure you want to delete this row?")) { onDeleteRow && onDeleteRow(index); } }}
                         title="Delete"
                       >

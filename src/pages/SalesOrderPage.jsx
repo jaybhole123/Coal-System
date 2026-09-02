@@ -123,7 +123,11 @@ export default function SalesOrderPage({ state, setState }) {
       const parseDate = (val) => {
         if (!val || val === "-") return null;
         const d = new Date(val);
-        return isNaN(d) ? null : d.toISOString();
+        if (isNaN(d)) return null;
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
       };
 
       const insertPayload = {
@@ -311,7 +315,11 @@ export default function SalesOrderPage({ state, setState }) {
         const parseDate = (val) => {
           if (!val || val === "-") return null;
           const d = new Date(val);
-          return isNaN(d) ? null : d.toISOString();
+          if (isNaN(d)) return null;
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
         };
 
         return {
@@ -428,7 +436,11 @@ export default function SalesOrderPage({ state, setState }) {
         const parseDate = (val) => {
           if (!val || val === "-") return null;
           const d = new Date(val);
-          return isNaN(d) ? null : d.toISOString();
+          if (isNaN(d)) return null;
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
         };
 
         const updatePayload = {
