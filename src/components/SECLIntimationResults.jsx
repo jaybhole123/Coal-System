@@ -21,6 +21,7 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
   const columnDropdownRef = useRef(null);
 
   const allTableColumns = [
+    { key: "srNo", label: "S.No." },
     { key: "bidderName", label: "Name of Bidder" },
     { key: "auctionDate", label: "Date of Auction" },
     { key: "sellerName", label: "Seller Name" },
@@ -71,9 +72,27 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
   };
 
   const handleSaveEdit = (updatedData) => {
-    onUpdateRow && onUpdateRow(editingIndex, updatedData);
+    const newRow = { ...updatedData };
+    // Map flattened edited properties back to _meta
+    if (newRow["Name of Bidder"] !== undefined || newRow["Date of Auction"] !== undefined) {
+      newRow._meta = { ...newRow._meta };
+      if (newRow["Name of Bidder"] !== undefined) newRow._meta["Name of Bidder"] = newRow["Name of Bidder"];
+      if (newRow["Date of Auction"] !== undefined) newRow._meta["Date of Auction"] = newRow["Date of Auction"];
+    }
+    
+    onUpdateRow && onUpdateRow(editingIndex, newRow);
     setEditingIndex(null);
   };
+
+  const editModalCols = [
+    { key: "Name of Bidder", label: "Name of Bidder" },
+    { key: "Date of Auction", label: "Date of Auction" },
+    { key: "Seller Name", label: "Seller Name" },
+    { key: "Source Name", label: "Source Name" },
+    { key: "Grade / Size", label: "Grade / Size" },
+    { key: "Quantity Allotted", label: "Quantity Allotted" },
+    { key: "Winning Bid Price (Rs/MT)", label: "Winning Bid Price (RS/MT)" }
+  ];
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files || []).filter(f => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
@@ -241,6 +260,7 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
               <table className="stable">
                 <thead>
                   <tr>
+                    {visibleCols.srNo && <th style={{ width: "50px", textAlign: "center" }}>S.No.</th>}
                     {visibleCols.bidderName && <th>Name of Bidder</th>}
                     {visibleCols.auctionDate && <th>Date of Auction</th>}
                     {visibleCols.sellerName && <th>Seller Name</th>}
@@ -256,13 +276,14 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
                   {filteredItems.map((row, i) => {
                     return (
                       <tr key={i}>
+                        {visibleCols.srNo && <td style={{ textAlign: "center", fontWeight: "600", color: "var(--muted)", fontSize: "13px" }}>{i + 1}</td>}
                         {visibleCols.bidderName && <td><HighlightText text={row._meta?.['Name of Bidder'] || "—"} highlight={searchTerm} /></td>}
                         {visibleCols.auctionDate && <td><HighlightText text={row._meta?.['Date of Auction'] || "—"} highlight={searchTerm} /></td>}
                         {visibleCols.sellerName && <td><HighlightText text={row["Seller Name"] || "—"} highlight={searchTerm} /></td>}
                         {visibleCols.sourceName && <td><HighlightText text={row["Source Name"] || "—"} highlight={searchTerm} /></td>}
                         {visibleCols.gradeSize && <td><HighlightText text={row["Grade / Size"] || "—"} highlight={searchTerm} /></td>}
-                        {visibleCols.qtyAllotted && <td><HighlightText text={row["Quantity Allotted"] || "—"} highlight={searchTerm} /></td>}
-                        {visibleCols.bidPrice && <td><HighlightText text={row["Winning Bid Price (Rs/MT)"] || "—"} highlight={searchTerm} /></td>}
+                        {visibleCols.qtyAllotted && <td><HighlightText text={row["Quantity Allotted"] != null && row["Quantity Allotted"] !== "" ? String(row["Quantity Allotted"]) : "—"} highlight={searchTerm} /></td>}
+                        {visibleCols.bidPrice && <td><HighlightText text={row["Winning Bid Price (Rs/MT)"] != null && row["Winning Bid Price (Rs/MT)"] !== "" ? String(row["Winning Bid Price (Rs/MT)"]) : "—"} highlight={searchTerm} /></td>}
                         {visibleCols.preview && <td>
                           {row.pdfUrl ? (
                             <a href={row.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
@@ -331,8 +352,12 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
         onClose={() => setEditingIndex(null)}
         onSave={handleSaveEdit}
         title="Edit SECL Intimation"
-        initialData={editingIndex !== null ? allItems[editingIndex] : null}
-        columns={COLS}
+        initialData={editingIndex !== null ? {
+          ...allItems[editingIndex],
+          "Name of Bidder": allItems[editingIndex]._meta?.["Name of Bidder"] || "",
+          "Date of Auction": allItems[editingIndex]._meta?.["Date of Auction"] || "",
+        } : null}
+        columns={editModalCols}
       />
     </section>
   );

@@ -75,32 +75,97 @@ export default function SalesOrderPage({ state, setState }) {
   }, [setState, data]);
 
 
-  const handleManualAdd = (formData) => {
-    const newItem = {
-      pdfUrl: formData.pdfFile ? URL.createObjectURL(formData.pdfFile) : null,
-      pdfName: formData.pdfFile ? formData.pdfFile.name : "Manual Entry",
-      sold_to_party: { name: formData.name },
-      order_info: { 
-        sales_order_number: formData.sales_order_number,
-        sales_order_valid_from: formData.sales_order_valid_from,
-        sales_order_valid_to: formData.sales_order_valid_to
-      },
-      mine_info: {
-        area: formData.office_area,
-        mine: formData.mine
-      },
-      line_items: [{ quantity: formData.quantity, mine: formData.mine }],
-      pricing: [{ description: "Requisite Payment", rate_per_te: formData.rate_per_te, amount: formData.amount }],
-      totals: { requisite_payment: formData.amount }
-    };
-    setState((s) => ({
-      ...s,
-      data: s.data && Array.isArray(s.data) ? [...s.data, newItem] : [newItem],
-      view: "results",
-      fileName: s.fileName || "Manual Entry"
-    }));
-    setIsModalOpen(false);
+  const handleManualAdd = async (formData) => {
+    try {
+      let pdf_url = null;
+
+      // Upload PDF to Supabase Storage if provided
+      if (formData.pdfFile) {
+        const fileExt = formData.pdfFile.name.split('.').pop();
+        const filePath = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('pdfs')
+          .upload(filePath, formData.pdfFile, { cacheControl: '3600', upsert: false });
+
+        if (!uploadError) {
+          const { data: publicUrlData } = supabase.storage
+            .from('pdfs')
+            .getPublicUrl(filePath);
+          pdf_url = publicUrlData?.publicUrl || null;
+        } else {
+          console.warn("PDF upload failed:", uploadError);
+        }
+      }
+
+      const parseNum = (val) => {
+        if (!val) return 0;
+        const parsed = parseFloat(val.toString().replace(/,/g, ''));
+        return isNaN(parsed) ? 0 : parsed;
+      };
+
+      const parseDate = (val) => {
+        if (!val || val === "-") return null;
+        const d = new Date(val);
+        return isNaN(d) ? null : d.toISOString();
+      };
+
+      const insertPayload = {
+        pdf_name: formData.pdfFile ? formData.pdfFile.name : "Manual Entry",
+        pdf_url,
+        name: formData.name || null,
+        sales_order_number: formData.sales_order_number || null,
+        sales_order_valid_from: parseDate(formData.sales_order_valid_from),
+        sales_order_valid_to: parseDate(formData.sales_order_valid_to),
+        office_area: formData.office_area || null,
+        mine: formData.mine || null,
+        quantity: parseNum(formData.quantity),
+        rate_per_te: parseNum(formData.rate_per_te),
+        amount: parseNum(formData.amount),
+      };
+
+      const { data: inserted, error } = await supabase
+        .from('sales_orders')
+        .insert(insertPayload)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add to local state with DB id
+      const newItem = {
+        id: inserted.id,
+        pdfUrl: pdf_url,
+        pdfName: insertPayload.pdf_name,
+        sold_to_party: { name: formData.name },
+        order_info: {
+          sales_order_number: formData.sales_order_number,
+          sales_order_valid_from: formData.sales_order_valid_from,
+          sales_order_valid_to: formData.sales_order_valid_to
+        },
+        mine_info: {
+          area: formData.office_area,
+          mine: formData.mine
+        },
+        line_items: [{ quantity: formData.quantity, mine: formData.mine }],
+        pricing: [{ description: "Requisite Payment", rate_per_te: formData.rate_per_te, amount: formData.amount }],
+        totals: { requisite_payment: formData.amount }
+      };
+
+      setState((s) => ({
+        ...s,
+        data: s.data && Array.isArray(s.data) ? [...s.data, newItem] : [newItem],
+        view: "results",
+        fileName: s.fileName || "Manual Entry"
+      }));
+
+      setIsModalOpen(false);
+      showToast("Entry saved to database successfully!");
+    } catch (err) {
+      console.error("Manual Add Error:", err);
+      showToast("Error saving entry: " + err.message);
+    }
   };
+
 
   const handleFiles = useCallback(
     async (files) => {

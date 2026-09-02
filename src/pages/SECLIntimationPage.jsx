@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { showToast } from "../utils/toast";
 import Dropzone from "../components/Dropzone";
 import SECLIntimationResults from "../components/SECLIntimationResults";
@@ -6,7 +6,7 @@ import EditModal from "../components/EditModal";
 import SECLFormat2Page from "./SECLFormat2Page";
 import { extractSECLData, toSECLCSV, COLS } from "../utils/seclParser";
 import { downloadBlob } from "../utils/pdfParser";
-
+import { supabase } from "../utils/supabase";
 /**
  * SECLIntimationPage — owns the upload/result state for this page.
  */
@@ -15,31 +15,125 @@ export default function SECLIntimationPage({ state, setState }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { view, loading, loadingName, error, data, fileName } = state;
 
-  const handleManualAdd = (formData) => {
-    const newItem = {
-      pdfUrl: formData.pdfFile ? URL.createObjectURL(formData.pdfFile) : null,
-      pdfName: formData.pdfFile ? formData.pdfFile.name : "Manual Entry",
-      meta: {
-        "Name of Bidder": formData.bidderName,
-        "Date of Auction": formData.auctionDate
-      },
-      details: {},
-      items: [{
-        "Seller Name": formData.sellerName,
-        "Source Name": formData.sourceName,
-        "Grade / Size": formData.gradeSize,
-        "Quantity Allotted": formData.qtyAllotted,
-        "Winning Bid Price (Rs/MT)": formData.bidPrice
-      }]
+  useEffect(() => {
+    const fetchSupabaseData = async () => {
+      try {
+        const { data: dbData, error } = await supabase.from('secl_intimation_format_1').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+        
+        if (dbData && dbData.length > 0) {
+          const formattedData = dbData.map(row => ({
+            id: row.id,
+            pdfName: "Supabase DB",
+            pdfUrl: row.pdf_url || null,
+            meta: {
+              "Name of Bidder": row.name_of_bidder,
+              "Date of Auction": row.date_of_auction
+            },
+            details: {},
+            items: [{
+              "Seller Name": row.seller_name,
+              "Source Name": row.source_name,
+              "Grade / Size": row.grade_size,
+              "Quantity Allotted": row.quantity_allotted,
+              "Winning Bid Price (Rs/MT)": row.winning_bid_price_rs_mt,
+              "Prev": row.previous_value || ""
+            }]
+          }));
+
+          setState(s => ({
+            ...s,
+            view: "results",
+            data: formattedData,
+            fileName: "Loaded from Supabase"
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch from Supabase:", err);
+      }
     };
-    setState((s) => ({
-      ...s,
-      data: s.data && Array.isArray(s.data) ? [...s.data, newItem] : [newItem],
-      view: "results",
-      fileName: s.fileName || "Manual Entry"
-    }));
-    setIsModalOpen(false);
+
+    // Fetch on mount if no data is present yet
+    if (!data) {
+      fetchSupabaseData();
+    }
+  }, [setState, data]);
+
+
+  const handleManualAdd = async (formData) => {
+    try {
+      let pdf_url = null;
+
+      // Upload PDF to Supabase Storage if provided
+      if (formData.pdfFile) {
+        const filePath = `pdfs/${Date.now()}_${formData.pdfFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("secl-pdfs")
+          .upload(filePath, formData.pdfFile, { contentType: "application/pdf", upsert: true });
+
+        if (!uploadError) {
+          const { data: publicUrlData } = supabase.storage
+            .from("secl-pdfs")
+            .getPublicUrl(filePath);
+          pdf_url = publicUrlData?.publicUrl || null;
+        } else {
+          console.warn("PDF upload failed:", uploadError);
+        }
+      }
+
+      const insertPayload = {
+        name_of_bidder: formData.bidderName || "",
+        date_of_auction: formData.auctionDate || "",
+        seller_name: formData.sellerName || "",
+        source_name: formData.sourceName || "",
+        grade_size: formData.gradeSize || "",
+        quantity_allotted: parseFloat(formData.qtyAllotted) || 0,
+        winning_bid_price_rs_mt: parseFloat(formData.bidPrice) || 0,
+        pdf_url,
+      };
+
+      const { data: inserted, error } = await supabase
+        .from('secl_intimation_format_1')
+        .insert(insertPayload)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add to local state with DB id
+      const newItem = {
+        id: inserted.id,
+        pdfUrl: pdf_url,
+        pdfName: formData.pdfFile ? formData.pdfFile.name : "Manual Entry",
+        meta: {
+          "Name of Bidder": formData.bidderName,
+          "Date of Auction": formData.auctionDate
+        },
+        details: {},
+        items: [{
+          "Seller Name": formData.sellerName,
+          "Source Name": formData.sourceName,
+          "Grade / Size": formData.gradeSize,
+          "Quantity Allotted": formData.qtyAllotted,
+          "Winning Bid Price (Rs/MT)": formData.bidPrice
+        }]
+      };
+
+      setState((s) => ({
+        ...s,
+        data: s.data && Array.isArray(s.data) ? [...s.data, newItem] : [newItem],
+        view: "results",
+        fileName: s.fileName || "Manual Entry"
+      }));
+
+      setIsModalOpen(false);
+      showToast("Entry saved to Supabase successfully!");
+    } catch (err) {
+      console.error("Manual Add Error:", err);
+      showToast("Error saving entry to Supabase");
+    }
   };
+
 
   const handleFiles = useCallback(
     async (files) => {
@@ -91,11 +185,66 @@ export default function SECLIntimationPage({ state, setState }) {
     downloadBlob(JSON.stringify(data, null, 2), fileName.replace(/\.pdf$/i, "") + "_secl.json", "application/json");
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!data) return;
-    localStorage.setItem("secl_data", JSON.stringify(data));
-    showToast("Data saved to LocalStorage successfully!");
+
+    try {
+      const allItems = await Promise.all(
+        data.flatMap((d) =>
+          (d.items || []).map(async (item) => {
+            let pdf_url = d.pdfUrl || null;
+
+            // If pdfUrl is a blob URL, upload to Supabase Storage
+            if (pdf_url && pdf_url.startsWith("blob:")) {
+              try {
+                const response = await fetch(pdf_url);
+                const blob = await response.blob();
+                const fileName = d.pdfName || `secl_${Date.now()}.pdf`;
+                const filePath = `pdfs/${Date.now()}_${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                  .from("secl-pdfs")
+                  .upload(filePath, blob, { contentType: "application/pdf", upsert: true });
+
+                if (!uploadError) {
+                  const { data: publicUrlData } = supabase.storage
+                    .from("secl-pdfs")
+                    .getPublicUrl(filePath);
+                  pdf_url = publicUrlData?.publicUrl || null;
+                } else {
+                  console.warn("PDF upload failed:", uploadError);
+                  pdf_url = null;
+                }
+              } catch (e) {
+                console.warn("PDF upload error:", e);
+                pdf_url = null;
+              }
+            }
+
+            return {
+              name_of_bidder: d.meta?.["Name of Bidder"] || "",
+              date_of_auction: d.meta?.["Date of Auction"] || "",
+              seller_name: item["Seller Name"] || "",
+              source_name: item["Source Name"] || "",
+              grade_size: item["Grade / Size"] || "",
+              quantity_allotted: parseFloat(item["Quantity Allotted"]) || 0,
+              winning_bid_price_rs_mt: parseFloat(item["Winning Bid Price (Rs/MT)"] || item["Winning Bid Price Rs/MT"]) || 0,
+              pdf_url,
+            };
+          })
+        )
+      );
+
+      const { error } = await supabase.from('secl_intimation_format_1').insert(allItems);
+      if (error) throw error;
+
+      showToast("Data saved to Supabase successfully!");
+    } catch (err) {
+      console.error("Supabase Save Error:", err);
+      showToast("Error saving to Supabase");
+    }
   };
+
 
   const handleExportCsv = () => {
     if (!data) return;
@@ -103,7 +252,9 @@ export default function SECLIntimationPage({ state, setState }) {
     downloadBlob(toSECLCSV(COLS, allItems), fileName.replace(/\.pdf$/i, "") + "_secl.csv", "text/csv");
   };
 
-  const handleDeleteRow = (index) => {
+  const handleDeleteRow = async (index) => {
+    let itemToDelete = null;
+    
     setState((s) => {
       const newData = [...s.data];
       let currentIndex = 0;
@@ -111,6 +262,8 @@ export default function SECLIntimationPage({ state, setState }) {
         const itemsCount = newData[i].items ? newData[i].items.length : 0;
         if (index >= currentIndex && index < currentIndex + itemsCount) {
           const itemIndex = index - currentIndex;
+          itemToDelete = newData[i]; // Store the parent object that contains id
+          
           const newItems = [...newData[i].items];
           newItems.splice(itemIndex, 1);
           newData[i] = { ...newData[i], items: newItems };
@@ -118,16 +271,31 @@ export default function SECLIntimationPage({ state, setState }) {
         }
         currentIndex += itemsCount;
       }
-      // Check if all items across all PDFs are empty
+      
+      // We will perform DB deletion outside the setState
+      
       const hasAnyItems = newData.some(d => d.items && d.items.length > 0);
       if (!hasAnyItems) {
         return { ...s, view: "drop", data: null, fileName: "" };
       }
       return { ...s, data: newData };
     });
+
+    if (itemToDelete && itemToDelete.id) {
+      try {
+        const { error } = await supabase.from('secl_intimation_format_1').delete().eq('id', itemToDelete.id);
+        if (error) throw error;
+        showToast("Deleted from Supabase successfully!");
+      } catch (err) {
+        console.error("Error deleting from Supabase:", err);
+        showToast("Error deleting from Supabase");
+      }
+    }
   };
 
-  const handleUpdateRow = (index, updatedRow) => {
+  const handleUpdateRow = async (index, updatedRow) => {
+    let rowId = null;
+
     setState((s) => {
       const newData = [...s.data];
       let currentIndex = 0;
@@ -135,16 +303,47 @@ export default function SECLIntimationPage({ state, setState }) {
         const itemsCount = newData[i].items ? newData[i].items.length : 0;
         if (index >= currentIndex && index < currentIndex + itemsCount) {
           const itemIndex = index - currentIndex;
+          // Get the id from the parent record (each Supabase row = one item)
+          rowId = newData[i].id;
+
           const newItems = [...newData[i].items];
           newItems[itemIndex] = updatedRow;
-          newData[i] = { ...newData[i], items: newItems };
+          // Also update meta if bidder/date changed
+          const updatedMeta = {
+            ...newData[i].meta,
+            "Name of Bidder": updatedRow["Name of Bidder"] || newData[i].meta?.["Name of Bidder"],
+            "Date of Auction": updatedRow["Date of Auction"] || newData[i].meta?.["Date of Auction"],
+          };
+          newData[i] = { ...newData[i], items: newItems, meta: updatedMeta };
           break;
         }
         currentIndex += itemsCount;
       }
       return { ...s, data: newData };
     });
+
+    // Update in Supabase if we have an id
+    if (rowId) {
+      try {
+        const updatePayload = {
+          name_of_bidder: updatedRow["Name of Bidder"] || updatedRow._meta?.["Name of Bidder"] || "",
+          date_of_auction: updatedRow["Date of Auction"] || updatedRow._meta?.["Date of Auction"] || "",
+          seller_name: updatedRow["Seller Name"] || "",
+          source_name: updatedRow["Source Name"] || "",
+          grade_size: updatedRow["Grade / Size"] || "",
+          quantity_allotted: parseFloat(updatedRow["Quantity Allotted"]) || 0,
+          winning_bid_price_rs_mt: parseFloat(updatedRow["Winning Bid Price (Rs/MT)"] || updatedRow["Winning Bid Price Rs/MT"]) || 0,
+        };
+        const { error } = await supabase.from('secl_intimation_format_1').update(updatePayload).eq('id', rowId);
+        if (error) throw error;
+        showToast("Updated in Supabase successfully!");
+      } catch (err) {
+        console.error("Supabase Update Error:", err);
+        showToast("Error updating in Supabase");
+      }
+    }
   };
+
 
   return (
     <div>
