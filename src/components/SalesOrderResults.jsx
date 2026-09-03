@@ -43,6 +43,7 @@ export default function SalesOrderResults({
     { key: "rate_per_te", label: "Rate Per TE(INR)" },
     { key: "amount", label: "Amount(INR)" },
     { key: "left_days", label: "Left Days" },
+    { key: "submitted_date", label: "Submitted Date" },
     { key: "preview", label: "Preview" },
     { key: "action", label: "Action" }
   ];
@@ -83,6 +84,7 @@ export default function SalesOrderResults({
       mine: display(d.mine_info?.mine || d.line_items?.[0]?.mine),
       rate_per_te: display(reqPay?.rate_per_te || d.pricing?.[0]?.rate_per_te),
       amount: display(reqPay?.amount || d.totals?.requisite_payment || d.pricing?.[0]?.amount),
+      submitted_date: d.created_at ? new Date(d.created_at).toLocaleDateString() : "-",
     };
   };
 
@@ -146,6 +148,7 @@ export default function SalesOrderResults({
     { key: "sales_order_valid_from", label: "Sales Order Valid From" },
     { key: "sales_order_valid_to", label: "Sales Order Valid To" },
     { key: "left_days", label: "Left Days" },
+    { key: "submitted_date", label: "Submitted Date" },
     { key: "office_area", label: "Office Area" },
     { key: "quantity", label: "Quantity" },
     { key: "mine", label: "Mine" },
@@ -418,6 +421,7 @@ export default function SalesOrderResults({
                 {visibleCols.rate_per_te && <th className="num">Rate Per TE(INR)</th>}
                 {visibleCols.amount && <th className="num">Amount(INR)</th>}
                 {visibleCols.left_days && <th>Left Days</th>}
+                {visibleCols.submitted_date && <th>Submitted Date</th>}
                 {visibleCols.preview && <th>Preview</th>}
                 {visibleCols.action && <th>Action</th>}
               </tr>
@@ -439,6 +443,7 @@ export default function SalesOrderResults({
                     {visibleCols.left_days && <td data-label="Left Days" style={{ color: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "#dc2626" : "inherit", fontWeight: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "500" : "normal" }}>
                       {getDaysLeft(summaryRow.sales_order_valid_to)}
                     </td>}
+                    {visibleCols.submitted_date && <td data-label="Submitted Date"><HighlightText text={summaryRow.submitted_date} highlight={searchTerm} /></td>}
                     {visibleCols.preview && <td data-label="Preview">
                       {d.pdfUrl ? (
                         <a href={d.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>

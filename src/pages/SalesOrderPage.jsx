@@ -40,6 +40,7 @@ export default function SalesOrderPage({ state, setState }) {
         if (dbData && dbData.length > 0) {
           const mappedData = dbData.map(row => ({
             id: row.id,
+            created_at: row.created_at,
             pdfName: row.pdf_name || "From Database",
             pdfUrl: row.pdf_url || null,
             sold_to_party: { name: row.name },
@@ -155,6 +156,7 @@ export default function SalesOrderPage({ state, setState }) {
       // Add to local state with DB id
       const newItem = {
         id: inserted.id,
+        created_at: inserted.created_at,
         pdfUrl: pdf_url,
         pdfName: insertPayload.pdf_name,
         sold_to_party: { name: formData.name },
@@ -506,6 +508,7 @@ export default function SalesOrderPage({ state, setState }) {
                     <th className="num">Rate Per TE(INR)</th>
                     <th className="num">Amount(INR)</th>
                     <th>Left Days</th>
+                    <th>Submitted Date</th>
                     <th>Preview</th>
                     <th>Action</th>
                   </tr>
