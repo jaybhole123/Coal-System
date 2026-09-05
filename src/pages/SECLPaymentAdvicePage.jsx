@@ -4,12 +4,66 @@ import Dropzone from "../components/Dropzone";
 import SECLPaymentAdviceResults from "../components/SECLPaymentAdviceResults";
 import EditModal from "../components/EditModal";
 import { parseSECLPaymentAdvice } from "../utils/seclPaymentAdviceParser";
+import { supabase } from "../utils/supabase";
 
 export default function SECLPaymentAdvicePage({ state, setState }) {
   const { view, loading, loadingName, error, data, fileName } = state;
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const handleManualAdd = (formData) => {
+  React.useEffect(() => {
+    const fetchSupabaseData = async () => {
+      try {
+        const { data: dbData, error } = await supabase
+          .from('secl_payment_advices')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (dbData && dbData.length > 0) {
+          const formattedData = dbData.map(row => {
+            const qty = row.quantity || 1;
+            return {
+              id: row.id,
+              isManual: row.is_manual,
+              createdAt: row.created_at,
+              minesName: row.mines_name,
+              customerName: row.customer_name,
+              quantity: row.quantity,
+              requisitePayment: row.requisite_payment,
+              grandTotal: row.grand_total,
+              grandPMT: row.grand_total !== null ? row.grand_total / qty : null,
+              auctionDate: row.auction_date,
+              dueDate: row.due_date,
+              bidPrice: row.bid_price,
+              pdfTcsTotal: row.pdf_tcs_total,
+              tcsAmount: row.tcs_amount,
+              incl50: row.incl_50,
+              inclTotal: row.incl_total,
+              pdfUrl: row.pdf_url || null,
+              pdfName: "Supabase DB"
+            };
+          });
+
+          setState(s => ({
+            ...s,
+            view: "results",
+            data: formattedData,
+            fileName: "Loaded from Supabase"
+          }));
+        } else {
+          setState(s => ({ ...s, view: "drop", data: null, fileName: "" }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch from Supabase:", err);
+      }
+    };
+
+    fetchSupabaseData();
+  }, [refreshTrigger, setState]);
+
+  const handleManualAdd = async (formData) => {
     const qty = parseFloat(formData.quantity) || 1;
     const req = parseFloat(formData.requisitePayment);
     const grand = parseFloat(formData.grandTotal);
@@ -26,6 +80,7 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
       quantity: isNaN(parseFloat(formData.quantity)) ? null : parseFloat(formData.quantity),
       requisitePayment: isNaN(req) ? null : req,
       grandTotal: isNaN(grand) ? null : grand,
+      grandPMT,
       auctionDate: formData.auctionDate || 'Not Found',
       dueDate: formData.dueDate || 'Not Found',
       bidPrice: isNaN(bid) ? null : bid,
@@ -35,13 +90,44 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
       inclTotal
     };
 
-    setState((s) => ({
-      ...s,
-      data: s.data && Array.isArray(s.data) ? [...s.data, newItem] : [newItem],
-      view: "results",
-      fileName: s.fileName || "Manual Entry"
-    }));
-    setIsModalOpen(false);
+    try {
+      const insertPayload = {
+        is_manual: true,
+        mines_name: newItem.minesName,
+        customer_name: newItem.customerName,
+        quantity: newItem.quantity,
+        requisite_payment: newItem.requisitePayment,
+        grand_total: newItem.grandTotal,
+        auction_date: newItem.auctionDate,
+        due_date: newItem.dueDate,
+        bid_price: newItem.bidPrice,
+        pdf_tcs_total: newItem.pdfTcsTotal,
+        tcs_amount: newItem.tcsAmount,
+        incl_50: newItem.incl50,
+        incl_total: newItem.inclTotal
+      };
+
+      const { data: inserted, error } = await supabase
+        .from('secl_payment_advices')
+        .insert(insertPayload)
+        .select()
+        .single();
+
+      if (error) throw error;
+      newItem.id = inserted.id;
+
+      setState((s) => ({
+        ...s,
+        data: s.data && Array.isArray(s.data) ? [...s.data, newItem] : [newItem],
+        view: "results",
+        fileName: s.fileName || "Manual Entry"
+      }));
+      setIsModalOpen(false);
+      showToast("Manual entry saved to Supabase!");
+    } catch (err) {
+      console.error("Manual Add Error:", err);
+      showToast("Error saving manual entry to Supabase");
+    }
   };
 
   const handleFiles = useCallback(
@@ -111,29 +197,136 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
   const handleReset = () =>
     setState({ view: "drop", loading: false, loadingName: "", error: null, data: null, fileName: "" });
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!data) return;
-    localStorage.setItem("secl_payment_advice_data", JSON.stringify(data));
-    showToast("Data saved to LocalStorage successfully!");
+    
+    const newItemsData = data.filter(d => !d.id);
+    if (newItemsData.length === 0) {
+      showToast("No new data to save.");
+      return;
+    }
+
+    try {
+      showToast("Saving new data and uploading PDFs...");
+      const allItems = await Promise.all(
+        newItemsData.map(async (d) => {
+          let pdf_url = d.pdfUrl || null;
+
+          if (pdf_url && pdf_url.startsWith("blob:")) {
+            try {
+              const response = await fetch(pdf_url);
+              const blob = await response.blob();
+              const fileName = d.pdfName || `secl_payment_${Date.now()}.pdf`;
+              const filePath = `pdfs/${Date.now()}_${fileName}`;
+
+              const { error: uploadError } = await supabase.storage
+                .from("secl-pdfs")
+                .upload(filePath, blob, { contentType: "application/pdf", upsert: true });
+
+              if (!uploadError) {
+                const { data: publicUrlData } = supabase.storage
+                  .from("secl-pdfs")
+                  .getPublicUrl(filePath);
+                pdf_url = publicUrlData?.publicUrl || null;
+              } else {
+                console.warn("PDF upload failed:", uploadError);
+                pdf_url = null;
+              }
+            } catch (e) {
+              console.warn("PDF upload error:", e);
+              pdf_url = null;
+            }
+          }
+
+          return {
+            is_manual: d.isManual || false,
+            mines_name: d.minesName || "",
+            customer_name: d.customerName || "",
+            quantity: d.quantity || null,
+            requisite_payment: d.requisitePayment || null,
+            grand_total: d.grandTotal || null,
+            auction_date: d.auctionDate || "",
+            due_date: d.dueDate || "",
+            bid_price: d.bidPrice || null,
+            pdf_tcs_total: d.pdfTcsTotal || null,
+            tcs_amount: d.tcsAmount || null,
+            incl_50: d.incl50 || null,
+            incl_total: d.inclTotal || null,
+            pdf_url,
+          };
+        })
+      );
+
+      const { data: insertedData, error } = await supabase.from('secl_payment_advices').insert(allItems).select();
+      if (error) throw error;
+
+      showToast("Data saved to Supabase successfully!");
+      setRefreshTrigger(prev => prev + 1);
+
+    } catch (err) {
+      console.error("Supabase Save Error:", err);
+      showToast("Error saving to Supabase");
+    }
   };
 
-  const handleDeleteRow = (index) => {
+  const handleDeleteRow = async (index) => {
+    let itemToDelete = null;
+
     setState((s) => {
       const newData = [...s.data];
+      itemToDelete = newData[index];
       newData.splice(index, 1);
       if (newData.length === 0) {
         return { ...s, view: "drop", data: null, fileName: "" };
       }
       return { ...s, data: newData };
     });
+
+    if (itemToDelete && itemToDelete.id) {
+      try {
+        const { error } = await supabase.from('secl_payment_advices').delete().eq('id', itemToDelete.id);
+        if (error) throw error;
+        showToast("Deleted from Supabase successfully!");
+      } catch (err) {
+        console.error("Error deleting from Supabase:", err);
+        showToast("Error deleting from Supabase");
+      }
+    }
   };
 
-  const handleUpdateRow = (index, updatedRow) => {
+  const handleUpdateRow = async (index, updatedRow) => {
+    let rowId = null;
+
     setState((s) => {
       const newData = [...s.data];
+      rowId = newData[index].id;
       newData[index] = { ...newData[index], ...updatedRow };
       return { ...s, data: newData };
     });
+
+    if (rowId) {
+      try {
+        const updatePayload = {
+          mines_name: updatedRow.minesName,
+          customer_name: updatedRow.customerName,
+          quantity: updatedRow.quantity,
+          requisite_payment: updatedRow.requisitePayment,
+          grand_total: updatedRow.grandTotal,
+          auction_date: updatedRow.auctionDate,
+          due_date: updatedRow.dueDate,
+          bid_price: updatedRow.bidPrice,
+          tcs_amount: updatedRow.tcsAmount,
+          incl_50: updatedRow.incl50,
+          incl_total: updatedRow.inclTotal
+        };
+        const { error } = await supabase.from('secl_payment_advices').update(updatePayload).eq('id', rowId);
+        if (error) throw error;
+        showToast("Updated in Supabase successfully!");
+      } catch (err) {
+        console.error("Supabase Update Error:", err);
+        showToast("Error updating in Supabase");
+      }
+    }
   };
 
   return (

@@ -190,6 +190,7 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
     { key: "dueDate", label: "Due Date" },
     { key: "bidPrice", label: "Bid Price" },
     { key: "incl50", label: "Including 50" },
+    { key: "createdAt", label: "Submitted Date" },
     { key: "preview", label: "Preview" },
     { key: "action", label: "Action" }
   ];
@@ -278,6 +279,7 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
               <table className="stable">
                 <thead>
                   <tr>
+                    <th className="r">S.No</th>
                     <th>Mines Name</th>
                     <th>Customer Name</th>
                     <th>Left Days</th>
@@ -291,6 +293,7 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                     const expiredDays = getExpiredDays(d.dueDate);
                     return (
                       <tr key={`left-days-${index}`}>
+                        <td data-label="S.No" className="sno" style={{ textAlign: "center" }}>{String(index + 1).padStart(2, '0')}</td>
                         <td data-label="Mines Name">{d.minesName || "-"}</td>
                         <td data-label="Customer Name">{d.customerName || "-"}</td>
                         <td data-label="Left Days" style={{ color: isExpired ? "#dc2626" : "inherit", fontWeight: isExpired ? "500" : "normal" }}>
@@ -407,6 +410,7 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                     {visibleCols.dueDate && <th>Due Date</th>}
                     {visibleCols.bidPrice && <th className="r">Bid Price<br /><small style={{ fontWeight: 400, textTransform: "none" }}>PMT (Basic)</small></th>}
                     {visibleCols.incl50 && <th className="r">Including 50<br /><small style={{ fontWeight: 400, textTransform: "none" }}>PMT Rate</small></th>}
+                    {visibleCols.createdAt && <th>Submitted Date</th>}
                     {visibleCols.preview && <th>Preview</th>}
                     {visibleCols.action && <th style={{ width: "60px", textAlign: "center" }}>Action</th>}
                   </tr>
@@ -439,6 +443,9 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                             {visibleCols.bidPrice && <td className="r" data-label="Bid Price PMT"><HighlightText text={formatN(r.bidPrice !== null ? rd2(r.bidPrice) : null)} highlight={searchTerm} /></td>}
                             {visibleCols.incl50 && <td className="r" data-label="Incl 50 PMT">
                               <span style={{ color: "#3fb950", fontWeight: 600 }}><HighlightText text={formatN(rd2(r.incl50))} highlight={searchTerm} /></span>
+                            </td>}
+                            {visibleCols.createdAt && <td className="date" data-label="Submitted Date">
+                              {r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : <span style={{ color: "var(--muted)" }}>-</span>}
                             </td>}
                             {visibleCols.preview && <td data-label="Preview">
                               {r.pdfUrl ? (
@@ -493,6 +500,7 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                           {visibleCols.dueDate && <td></td>}
                           {visibleCols.bidPrice && <td></td>}
                           {visibleCols.incl50 && <td></td>}
+                          {visibleCols.createdAt && <td></td>}
                           {visibleCols.preview && <td></td>}
                           {visibleCols.action && <td></td>}
                         </tr>
@@ -515,6 +523,7 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                         {visibleCols.dueDate && <td></td>}
                         {visibleCols.bidPrice && <td></td>}
                         {visibleCols.incl50 && <td></td>}
+                        {visibleCols.createdAt && <td></td>}
                         {visibleCols.preview && <td></td>}
                         {visibleCols.action && <td></td>}
                       </tr>

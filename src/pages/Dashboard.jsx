@@ -5,28 +5,9 @@ import {
   BarChart, Bar
 } from "recharts";
 import { INR } from "../utils/format";
-
-// --- MOCK DATA FOR TREND/ACTIVITY (Keep as is since dates aren't easily extracted) ---
-const trendData = [
-  { month: "Jan", documents: 120, revenue: 45000 },
-  { month: "Feb", documents: 150, revenue: 52000 },
-  { month: "Mar", documents: 180, revenue: 61000 },
-  { month: "Apr", documents: 220, revenue: 78000 },
-  { month: "May", documents: 190, revenue: 68000 },
-  { month: "Jun", documents: 290, revenue: 95000 },
-];
+import { supabase } from "../utils/supabase";
 
 const COLORS = ["#004080", "#4f46e5", "#6dbf8a", "#f59e0b", "#d6251b"];
-
-const activityData = [
-  { name: "Mon", processed: 42, errors: 2 },
-  { name: "Tue", processed: 58, errors: 1 },
-  { name: "Wed", processed: 45, errors: 4 },
-  { name: "Thu", processed: 65, errors: 2 },
-  { name: "Fri", processed: 78, errors: 1 },
-  { name: "Sat", processed: 25, errors: 0 },
-  { name: "Sun", processed: 18, errors: 0 },
-];
 
 export default function Dashboard({ onNavigate }) {
   const [stats, setStats] = useState({
@@ -38,61 +19,132 @@ export default function Dashboard({ onNavigate }) {
     ]
   });
 
+  const [dynamicTrendData, setDynamicTrendData] = useState([]);
+  const [dynamicActivityData, setDynamicActivityData] = useState([]);
+
   useEffect(() => {
-    try {
-      const getStore = (k) => JSON.parse(localStorage.getItem(k) || "[]");
-      const inv = getStore("invoice_data");
-      const so = getStore("sales_order_data");
-      const pa = getStore("payment_advice_data");
-      const secl = getStore("secl_data"); // Format 1
-      const secl2 = getStore("secl_format2_data"); // Format 2
-      const auc = getStore("auction_data");
+    const fetchDashboardData = async () => {
+      try {
+        const [
+          { data: invoices },
+          { data: salesOrders },
+          { data: paymentAdvices },
+          { data: seclIntimations }
+        ] = await Promise.all([
+          supabase.from('invoices').select('created_at, invoice_date, total_amount'),
+          supabase.from('sales_orders').select('created_at, sales_order_valid_from, amount'),
+          supabase.from('secl_payment_advices').select('created_at, auction_date, grand_total'),
+          supabase.from('secl_intimation_format_1').select('created_at')
+        ]);
 
-      const invCount = Array.isArray(inv) ? inv.length : 0;
-      const soCount = Array.isArray(so) ? so.length : 0;
-      const paCount = Array.isArray(pa) ? pa.length : 0;
-      let seclCount = 0;
-      if (Array.isArray(secl)) seclCount += secl.length;
-      if (Array.isArray(secl2)) seclCount += secl2.length;
-      const aucCount = Array.isArray(auc) ? auc.length : 0;
+        const safeArr = (arr) => Array.isArray(arr) ? arr : [];
+        const inv = safeArr(invoices);
+        const so = safeArr(salesOrders);
+        const pa = safeArr(paymentAdvices);
+        const secl = safeArr(seclIntimations);
+        const aucCount = 0; // Auctions not yet in DB
 
-      const totalDocs = invCount + soCount + paCount + seclCount + aucCount;
+        const totalDocs = inv.length + so.length + pa.length + secl.length + aucCount;
 
-      let totalValue = 0;
-      if (Array.isArray(inv)) {
-        inv.forEach(i => {
-           let val = parseFloat(String(i["Total Amount"] || i.total_amount || "0").replace(/[^0-9.]/g, ""));
-           if (!isNaN(val)) totalValue += val;
+        let totalValue = 0;
+        inv.forEach(i => totalValue += Number(i.total_amount) || 0);
+        so.forEach(s => totalValue += Number(s.amount) || 0);
+        pa.forEach(p => totalValue += Number(p.grand_total) || 0);
+
+        let distData = [
+          { name: "Invoices", value: inv.length },
+          { name: "Sales Orders", value: so.length },
+          { name: "Payment Advices", value: pa.length },
+          { name: "SECL Extractions", value: secl.length }
+        ].filter(d => d.value > 0);
+        
+        if (distData.length === 0) {
+          distData = [{ name: "No Data", value: 1 }];
+        }
+
+        // --- CALC TREND DATA (Last 6 Months) ---
+        // Use document dates for real business trend analysis
+        const parseDocDate = (dateStr, fallbackStr) => {
+          if (!dateStr || dateStr === "-") return new Date(fallbackStr);
+          // Try to handle DD-MMM-YYYY or YYYY-MM-DD
+          const d = new Date(dateStr);
+          return isNaN(d.getTime()) ? new Date(fallbackStr) : d;
+        };
+
+        const trendRecords = [
+          ...inv.map(i => ({ date: parseDocDate(i.invoice_date, i.created_at), val: Number(i.total_amount) || 0 })),
+          ...so.map(s => ({ date: parseDocDate(s.sales_order_valid_from, s.created_at), val: Number(s.amount) || 0 })),
+          ...pa.map(p => ({ date: parseDocDate(p.auction_date, p.created_at), val: Number(p.grand_total) || 0 })),
+          ...secl.map(s => ({ date: new Date(s.created_at), val: 0 }))
+        ];
+
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const now = new Date();
+        const tDataMap = {};
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const key = `${d.getFullYear()}-${d.getMonth()}`;
+          tDataMap[key] = { month: monthNames[d.getMonth()], documents: 0, revenue: 0, sortKey: d.getTime() };
+        }
+
+        trendRecords.forEach(r => {
+          if (isNaN(r.date.getTime())) return;
+          const key = `${r.date.getFullYear()}-${r.date.getMonth()}`;
+          if (tDataMap[key]) {
+            tDataMap[key].documents += 1;
+            tDataMap[key].revenue += r.val;
+          }
         });
-      }
-      if (Array.isArray(pa)) {
-        pa.forEach(p => {
-           let val = parseFloat(String(p.totals?.requisitePayment || "0").replace(/[^0-9.]/g, ""));
-           if (!isNaN(val)) totalValue += val;
+        
+        const newTrendData = Object.values(tDataMap).sort((a,b) => a.sortKey - b.sortKey).map(t => ({
+          month: t.month, documents: t.documents, revenue: t.revenue
+        }));
+
+        // --- CALC ACTIVITY DATA (Last 7 Days) ---
+        // Use created_at to track when the extractor was actually used
+        const activityRecords = [
+          ...inv.map(i => ({ date: new Date(i.created_at) })),
+          ...so.map(s => ({ date: new Date(s.created_at) })),
+          ...pa.map(p => ({ date: new Date(p.created_at) })),
+          ...secl.map(s => ({ date: new Date(s.created_at) }))
+        ];
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const actDataMap = {};
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(now);
+          d.setDate(d.getDate() - i);
+          const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+          actDataMap[key] = { name: dayNames[d.getDay()], processed: 0, sortKey: d.getTime() };
+        }
+
+        activityRecords.forEach(r => {
+          if (isNaN(r.date.getTime())) return;
+          const key = `${r.date.getFullYear()}-${r.date.getMonth()}-${r.date.getDate()}`;
+          if (actDataMap[key]) {
+            actDataMap[key].processed += 1;
+          }
         });
-      }
 
-      let distData = [
-        { name: "Invoices", value: invCount },
-        { name: "Sales Orders", value: soCount },
-        { name: "Payment Advices", value: paCount },
-        { name: "SECL Extractions", value: seclCount },
-        { name: "Auctions", value: aucCount }
-      ].filter(d => d.value > 0);
-      
-      if (distData.length === 0) {
-        distData = [{ name: "No Data", value: 1 }];
-      }
+        const newActivityData = Object.values(actDataMap).sort((a,b) => a.sortKey - b.sortKey).map(a => ({
+          name: a.name, processed: a.processed
+        }));
 
-      setStats({
-        totalDocs,
-        totalValue,
-        activeAuctions: aucCount,
-        distData
-      });
-    } catch(err) {
-      console.error("Dashboard analysis error:", err);
-    }
+        setStats({
+          totalDocs,
+          totalValue,
+          activeAuctions: aucCount,
+          distData
+        });
+        
+        setDynamicTrendData(newTrendData);
+        setDynamicActivityData(newActivityData);
+
+      } catch(err) {
+        console.error("Dashboard analysis error:", err);
+      }
+    };
+    
+    fetchDashboardData();
   }, []);
 
   const formatCompact = (val) => {
@@ -115,7 +167,7 @@ export default function Dashboard({ onNavigate }) {
 
       {/* TOP STATS */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20, marginBottom: 32 }}>
-        <StatCard title="Total Documents" value={stats.totalDocs.toLocaleString()} delta="Local Storage" icon="📄" trend="neutral" />
+        <StatCard title="Total Documents" value={stats.totalDocs.toLocaleString()} delta="Supabase DB" icon="📄" trend="up" />
         <StatCard title="Total Value Processed" value={`₹ ${formatCompact(stats.totalValue)}`} delta="From Invoices/Payments" icon="💰" trend="neutral" />
         <StatCard title="Active Auctions" value={stats.activeAuctions} delta="From Auction Module" icon="🔨" trend="neutral" />
         <StatCard title="System Accuracy" value="99.8%" delta="All extractors operational" icon="⚡" trend="neutral" />
@@ -130,7 +182,7 @@ export default function Dashboard({ onNavigate }) {
           </h3>
           <div style={{ height: 300, width: "100%" }}>
             <ResponsiveContainer>
-              <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={dynamicTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorVol" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.4} />
@@ -187,7 +239,7 @@ export default function Dashboard({ onNavigate }) {
           </h3>
           <div style={{ height: 300, width: "100%" }}>
             <ResponsiveContainer>
-              <BarChart data={activityData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={dynamicActivityData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} />
@@ -195,8 +247,7 @@ export default function Dashboard({ onNavigate }) {
                   contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} 
                   cursor={{ fill: "rgba(79, 70, 229, 0.05)" }} 
                 />
-                <Bar dataKey="processed" name="Processed" stackId="a" fill="#004080" radius={[0, 0, 0, 0]} barSize={28} />
-                <Bar dataKey="errors" name="Errors" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={28} />
+                <Bar dataKey="processed" name="Processed" fill="#004080" radius={[4, 4, 0, 0]} barSize={28} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
               </BarChart>
             </ResponsiveContainer>

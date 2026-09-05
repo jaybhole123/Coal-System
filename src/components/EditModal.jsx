@@ -15,6 +15,18 @@ export default function EditModal({ isOpen, onClose, onSave, title = "Edit Recor
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
+  const formatDateForInput = (val) => {
+    if (!val) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) {
+      // Offset timezone to avoid date shifting
+      const tzOffset = d.getTimezoneOffset() * 60000;
+      return new Date(d.getTime() - tzOffset).toISOString().split('T')[0];
+    }
+    return val;
+  };
+
   const handleSave = () => {
     onSave(formData);
   };
@@ -31,12 +43,16 @@ export default function EditModal({ isOpen, onClose, onSave, title = "Edit Recor
           <div style={styles.grid}>
             {columns.map((col) => {
               const fieldKey = col.key || col.label;
+              const isDate = /date/i.test(fieldKey) || col.type === 'date';
+              const val = formData[fieldKey] || "";
+              const displayVal = isDate && val ? formatDateForInput(val) : val;
+
               return (
                 <div key={fieldKey} style={styles.formGroup}>
                   <label style={styles.label}>{col.label}</label>
                   <input
-                    type="text"
-                    value={formData[fieldKey] || ""}
+                    type={isDate ? "date" : "text"}
+                    value={displayVal}
                     onChange={(e) => handleChange(fieldKey, e.target.value)}
                     style={styles.input}
                   />

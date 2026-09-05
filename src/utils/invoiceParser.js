@@ -46,7 +46,8 @@ export function parseInvoiceText(rows) {
 
   // ── TRANSPORT ──
   data.transport = grab(t, /Transport\s*:?\s*(By\s*Road|By\s*Rail|By\s*Air|By\s*Ship)/i);
-  data.placeOfSupply = grab(t, /Place\s*of\s*Supply\s*:?\s*([A-Za-z\-\s]+?)(?:\s*Terms|\s*Sl\b)/i);
+  data.placeOfSupply = grab(t, /Place\s*of\s*Supply\s*[:\-]?\s*([A-Za-z\.\&]+(?:\s+[A-Za-z\.\&]+){0,3}(?:\s*\(\s*[0-9]+\s*\))?)/i)
+    || grab(t, /Place\s*of\s*Supply\s*[:\-]?\s*([A-Za-z\s]+?)(?=\s*(?:State|Code|Reverse|Vehicle|E-way|Billed|To|Consignee|$))/i);
 
   // ── SUPPLIER ──
   data.supplierName = grab(t, /(JAI\s*BHOLE\s*ENTERPRISES)/i)
@@ -138,6 +139,11 @@ export function parseInvoiceText(rows) {
     if (total > 0) data.totalAmount = total.toFixed(2);
   }
 
+  // ── RATE ──
+  if (data.goods.length > 0 && !data.rate) {
+    data.rate = data.goods[0].rate;
+  }
+
   if (data.goods.length === 0 && !data.invoiceNo) {
     throw new Error("Invalid Format: Uploaded file is not a valid Invoice PDF (No invoice items found).");
   }
@@ -153,7 +159,9 @@ export const INVOICE_COLS = [
   { key: "supplierName", label: "SUPPLIER NAME" },
   { key: "ewayBillNo", label: "E-WAY BILL NO" },
   { key: "vehicleNo", label: "VEHICLE NO" },
+  { key: "placeOfSupply", label: "PLACE OF SUPPLY" },
   { key: "totalQuantity", label: "QUANTITY" },
+  { key: "rate", label: "RATE" },
   { key: "totalAmount", label: "TOTAL AMOUNT" },
 ];
 

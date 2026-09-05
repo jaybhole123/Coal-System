@@ -171,16 +171,18 @@ export default function SalesOrderResults({
     });
 
     const extraColumns = [
+      { key: "sno", label: "S.No" },
       { key: "name", label: "Name" },
       { key: "sales_order_number", label: "Sales Order Number" },
       { key: "left_days", label: "Left Days" },
       { key: "days_since_expired", label: "Days Since Expired" }
     ];
 
-    const extraData = dataArray.map(d => {
+    const extraData = dataArray.map((d, index) => {
       const summaryRow = buildSummaryRow(d);
       const expiredDays = getExpiredDays(summaryRow.sales_order_valid_to);
       return {
+        sno: String(index + 1).padStart(2, '0'),
         name: summaryRow.name,
         sales_order_number: summaryRow.sales_order_number,
         left_days: getDaysLeft(summaryRow.sales_order_valid_to),
@@ -287,6 +289,7 @@ export default function SalesOrderResults({
           <table className="stable">
             <thead>
               <tr>
+                <th className="r">S.No</th>
                 <th>Name</th>
                 <th>Sales Order Number</th>
                 <th>Left Days</th>
@@ -298,6 +301,7 @@ export default function SalesOrderResults({
                 const summaryRow = buildSummaryRow(d);
                 return (
                   <tr key={`left-days-${index}`}>
+                    <td data-label="S.No" className="sno" style={{ textAlign: "center" }}>{String(index + 1).padStart(2, '0')}</td>
                     <td data-label="Name" style={{ fontWeight: "600", color: "var(--text)" }}>{summaryRow.name}</td>
                     <td data-label="Sales Order Number">{summaryRow.sales_order_number}</td>
                     <td data-label="Left Days" style={{ color: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "#dc2626" : "inherit", fontWeight: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "500" : "normal" }}>

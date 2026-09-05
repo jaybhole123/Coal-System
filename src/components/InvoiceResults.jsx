@@ -19,6 +19,7 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
   const allTableColumns = [
     { key: "row_num", label: "#" },
     ...INVOICE_COLS,
+    { key: "createdAt", label: "Submitted Date" },
     { key: "preview", label: "Preview" },
     { key: "action", label: "Action" }
   ];
@@ -206,6 +207,7 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
                     {INVOICE_COLS.map((c) => (
                       visibleCols[c.key] && <th key={c.key}>{c.label}</th>
                     ))}
+                    {visibleCols.createdAt && <th>Submitted Date</th>}
                     {visibleCols.preview && <th>Preview</th>}
                     {visibleCols.action && <th>Action</th>}
                   </tr>
@@ -220,6 +222,9 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
                             <HighlightText text={row[c.key] || "—"} highlight={searchTerm} />
                           </td>
                         ))}
+                        {visibleCols.createdAt && <td data-label="Submitted Date">
+                          {row.createdAt ? new Date(row.createdAt).toLocaleDateString('en-GB') : "—"}
+                        </td>}
                         {visibleCols.preview && <td data-label="Preview">
                           {row.pdfUrl ? (
                             <a href={row.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
