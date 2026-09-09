@@ -65,7 +65,8 @@ export default function SalesOrderPage({ state, setState }) {
             }],
             totals: {
               requisite_payment: row.amount
-            }
+            },
+            so_value_rate: row.so_value_rate
           }));
 
           setState(s => ({ 
@@ -141,6 +142,7 @@ export default function SalesOrderPage({ state, setState }) {
         office_area: formData.office_area || null,
         mine: formData.mine || null,
         quantity: parseNum(formData.quantity),
+        so_value_rate: parseNum(formData.so_value_rate),
         rate_per_te: parseNum(formData.rate_per_te),
         amount: parseNum(formData.amount),
       };
@@ -171,7 +173,8 @@ export default function SalesOrderPage({ state, setState }) {
         },
         line_items: [{ quantity: formData.quantity, mine: formData.mine }],
         pricing: [{ description: "Requisite Payment", rate_per_te: formData.rate_per_te, amount: formData.amount }],
-        totals: { requisite_payment: formData.amount }
+        totals: { requisite_payment: formData.amount },
+        so_value_rate: formData.so_value_rate
       };
 
       setState((s) => ({
@@ -305,12 +308,32 @@ export default function SalesOrderPage({ state, setState }) {
         }
 
         const reqPay = d.pricing?.find(p => p.description?.toLowerCase().includes("requisite payment"));
+        const royalty = d.pricing?.find(p => p.description?.toLowerCase().includes("royalty"));
+        const nmet = d.pricing?.find(p => {
+          const lower = p.description?.toLowerCase() || "";
+          return lower.includes("nmet") || lower.includes("nemt") || lower.includes("nmedt") || lower.includes("national mineral");
+        });
+        const dmf = d.pricing?.find(p => {
+          const lower = p.description?.toLowerCase() || "";
+          return lower.includes("dmf") || lower.includes("district mineral");
+        });
+        const tcsObj = d.pricing?.find(p => p.description?.toLowerCase().includes("tcs"));
+        let tcsValue = null;
+        if (tcsObj) {
+          tcsValue = tcsObj.rate_per_te;
+        }
+
+        const soValueObj = d.pricing?.find(p => p.description?.toLowerCase().includes("so value") || p.description?.toLowerCase().includes("grand total including emd"));
+        let soValueRate = soValueObj ? soValueObj.rate_per_te : null;
+
+        const emdObj = d.pricing?.find(p => p.description?.toLowerCase().includes("less emd"));
+        let lessEmdRate = emdObj ? emdObj.rate_per_te : null;
         
         // Helper to parse numerical fields safely
         const parseNum = (val) => {
-          if (!val) return 0;
+          if (val === undefined || val === null || val === "") return null;
           const parsed = parseFloat(val.toString().replace(/,/g, ''));
-          return isNaN(parsed) ? 0 : parsed;
+          return isNaN(parsed) ? null : parsed;
         };
 
         // Helper to parse dates safely
@@ -335,7 +358,13 @@ export default function SalesOrderPage({ state, setState }) {
           mine: d.mine_info?.mine || d.line_items?.[0]?.mine || null,
           quantity: parseNum(d.line_items?.[0]?.quantity || d.mine_info?.quantity_words),
           rate_per_te: parseNum(reqPay?.rate_per_te || d.pricing?.[0]?.rate_per_te),
-          amount: parseNum(reqPay?.amount || d.totals?.requisite_payment || d.pricing?.[0]?.amount)
+          amount: parseNum(reqPay?.amount || d.totals?.requisite_payment || d.pricing?.[0]?.amount),
+          royalty_pmt: parseNum(royalty?.rate_per_te),
+          nemt: parseNum(nmet?.rate_per_te),
+          dmf: parseNum(dmf?.rate_per_te),
+          tcs: parseNum(tcsValue),
+          so_value_rate: parseNum(soValueRate),
+          less_emd: parseNum(lessEmdRate)
         };
       }));
 

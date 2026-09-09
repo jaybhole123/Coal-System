@@ -164,25 +164,25 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
               <button 
                 className="btn ghost" 
                 onClick={() => setShowColumnDropdown(!showColumnDropdown)}
-                style={{ display: "inline-flex", alignItems: "center", gap: "8px", border: "1px solid #d1d5db", borderRadius: "6px", padding: "6px 12px", background: "var(--surface, #fff)", color: "var(--text, #333)", fontSize: "14px", fontWeight: "500", cursor: "pointer", transition: "all 0.15s ease", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}
-                onMouseOver={(e) => { e.currentTarget.style.background = "#f9fafb"; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = "var(--surface, #fff)"; }}
+                style={{ display: "inline-flex", alignItems: "center", gap: "8px", border: "1px solid var(--line)", borderRadius: "6px", padding: "6px 12px", background: "var(--panel)", color: "var(--text)", fontSize: "14px", fontWeight: "500", cursor: "pointer", transition: "all 0.15s ease", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}
+                onMouseOver={(e) => { e.currentTarget.style.background = "var(--bg)"; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = "var(--panel)"; }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line></svg>
                 Columns
               </button>
               {showColumnDropdown && (
-                <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: "220px", background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)", zIndex: 100, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                  <div style={{ padding: "12px 14px", borderBottom: "1px solid #f3f4f6", fontSize: "13px", fontWeight: "600", color: "#374151", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: "220px", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)", zIndex: 100, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                  <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--line)", fontSize: "13px", fontWeight: "600", color: "var(--text)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span>Toggle Columns</span>
                   </div>
-                  <div style={{ padding: "10px 14px", display: "flex", gap: "12px", borderBottom: "1px solid #f3f4f6", fontSize: "12px", background: "#f9fafb" }}>
-                    <button onClick={() => setAllColumns(true)} style={{ color: "#2563eb", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "600" }}>Select All</button>
-                    <button onClick={() => setAllColumns(false)} style={{ color: "#6b7280", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "500" }}>Deselect All</button>
+                  <div style={{ padding: "10px 14px", display: "flex", gap: "12px", borderBottom: "1px solid var(--line)", fontSize: "12px", background: "var(--bg)" }}>
+                    <button onClick={() => setAllColumns(true)} style={{ color: "var(--primary)", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "600" }}>Select All</button>
+                    <button onClick={() => setAllColumns(false)} style={{ color: "var(--muted)", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "500" }}>Deselect All</button>
                   </div>
                   <div style={{ maxHeight: "220px", overflowY: "auto", padding: "8px 0" }}>
                     {allTableColumns.map(col => (
-                      <label key={col.key} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 16px", cursor: "pointer", fontSize: "13px", color: "#4b5563", transition: "background 0.15s", userSelect: "none" }} onMouseOver={(e) => e.currentTarget.style.background = "#f3f4f6"} onMouseOut={(e) => e.currentTarget.style.background = "transparent"}>
+                      <label key={col.key} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 16px", cursor: "pointer", fontSize: "13px", color: "var(--text)", transition: "background 0.15s", userSelect: "none" }} onMouseOver={(e) => e.currentTarget.style.background = "var(--bg)"} onMouseOut={(e) => e.currentTarget.style.background = "transparent"}>
                         <input 
                           type="checkbox" 
                           checked={visibleCols[col.key]} 

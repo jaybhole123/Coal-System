@@ -82,6 +82,7 @@ export default function SalesOrderResults({
       office_area: display(d.company?.office_area || d.mine_info?.area),
       quantity: display(d.line_items?.[0]?.quantity || d.mine_info?.quantity_words),
       mine: display(d.mine_info?.mine || d.line_items?.[0]?.mine),
+      so_value_rate: display(d.so_value_rate || d.pricing?.find(p => p.description?.toLowerCase().includes("so value") || p.description?.toLowerCase().includes("grand total including emd"))?.rate_per_te),
       rate_per_te: display(reqPay?.rate_per_te || d.pricing?.[0]?.rate_per_te),
       amount: display(reqPay?.amount || d.totals?.requisite_payment || d.pricing?.[0]?.amount),
       submitted_date: d.created_at ? new Date(d.created_at).toLocaleDateString() : "-",
