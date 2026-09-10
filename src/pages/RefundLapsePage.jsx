@@ -36,10 +36,15 @@ export default function RefundLapsePage() {
 
         const soValueRate = parseFloat(item.so_value_rate) || parseFloat(updatedData.so_value_rate) || 0;
         const tcsRate = parseFloat(item.tcs) || parseFloat(updatedData.tcs) || 0;
-        const calculatedCoalValue = lapsed > 0 ? ((soValueRate - tcsRate) * lapsed).toFixed(2) : "-";
+        const calculatedCoalValue = lapsed > 0 ? ((soValueRate - tcsRate) * lapsed).toFixed(2) : (item.coal_value || item.amount || "-");
 
-        const emdRate = parseFloat(item.less_emd_rate) || 0;
-        const calculatedLessEmd = lapsed > 0 ? (lapsed * emdRate).toFixed(2) : "-";
+        const emdRate = parseFloat(item.less_emd_rate) || parseFloat(item.less_emd) || 0;
+        const calculatedLessEmd = lapsed > 0 ? (lapsed * emdRate).toFixed(2) : (item.less_emd || "-");
+
+        let calculatedRefund = "-";
+        if (calculatedCoalValue !== "-" && calculatedLessEmd !== "-") {
+          calculatedRefund = (parseFloat(calculatedCoalValue) - parseFloat(calculatedLessEmd)).toFixed(2);
+        }
 
         // Update local state
         const newData = [...data];
@@ -50,7 +55,8 @@ export default function RefundLapsePage() {
           lifted_qty: computedLiftedQty,
           royalty_amount: calculatedRoyaltyAmt,
           coal_value: calculatedCoalValue,
-          less_emd: calculatedLessEmd
+          less_emd: calculatedLessEmd,
+          refund_amt_of_coal: calculatedRefund
         };
         setData(newData);
         setToastMessage("Data successfully updated!");
@@ -105,13 +111,18 @@ export default function RefundLapsePage() {
             
             const soValueRate = parseFloat(row.so_value_rate) || 0;
             const tcsRate = parseFloat(row.tcs) || 0;
-            const calculatedCoalValue = lapsed > 0 ? ((soValueRate - tcsRate) * lapsed).toFixed(2) : "-";
+            const calculatedCoalValue = lapsed > 0 ? ((soValueRate - tcsRate) * lapsed).toFixed(2) : (row.amount || "-");
 
             const doQty = parseFloat(row.quantity) || 0;
             const computedLiftedQty = row.quantity ? (doQty - lapsed) : (row.lifted_qty || "-");
 
             const emdRate = parseFloat(row.less_emd) || 0;
-            const calculatedLessEmd = lapsed > 0 ? (lapsed * emdRate).toFixed(2) : "-";
+            const calculatedLessEmd = lapsed > 0 ? (lapsed * emdRate).toFixed(2) : (row.less_emd || "-");
+
+            let calculatedRefund = "-";
+            if (calculatedCoalValue !== "-" && calculatedLessEmd !== "-") {
+              calculatedRefund = (parseFloat(calculatedCoalValue) - parseFloat(calculatedLessEmd)).toFixed(2);
+            }
 
             return {
               id: row.id,
@@ -131,7 +142,7 @@ export default function RefundLapsePage() {
               coal_value: calculatedCoalValue,
               less_emd: calculatedLessEmd,
               less_emd_rate: row.less_emd != null ? row.less_emd : "-",
-              refund_amt_of_coal: "-",
+              refund_amt_of_coal: calculatedRefund,
               royalty_pmt: row.royalty_pmt != null ? row.royalty_pmt : "-",
               royalty_amount: royaltyAmt,
               tcs: row.tcs || "-",
@@ -170,8 +181,6 @@ export default function RefundLapsePage() {
     { key: "royalty_amount", label: "ROYALTY AMOUNT" },
     { key: "nemt", label: "NEMT" },
     { key: "dmf", label: "DMF" },
-    { key: "tcs", label: "TCS" },
-    { key: "so_value_rate", label: "SO Value Rate" },
     { key: "preview", label: "Preview" }
   ];
 
@@ -231,7 +240,7 @@ export default function RefundLapsePage() {
               style={{ padding: "6px 12px 6px 30px", border: "1px solid var(--line)", borderRadius: "6px", fontSize: "13px", width: "220px", outline: "none", color: "var(--text)", background: "transparent" }}
             />
           </div>
-          <button className="btn">ADD DATA</button>
+
         </div>
       </div>
       
@@ -371,6 +380,7 @@ export default function RefundLapsePage() {
         onClose={() => setEditingIndex(null)}
         onSave={handleSaveEdit}
         title="Edit Refund / Lapse Entry"
+        showPdfUpload={false}
         initialData={editingIndex !== null ? {
           ...data[editingIndex],
           lapsed_qty: data[editingIndex].lapsed_qty === "-" ? "" : data[editingIndex].lapsed_qty

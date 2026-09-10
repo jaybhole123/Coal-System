@@ -209,6 +209,29 @@ export default function SalesOrderPage({ state, setState }) {
           files.map(async (file) => {
             const text = await extractTextFromPdf(file);
             const parsed = parseSalesOrder(text);
+            
+            // Fallback to calculate quantity from amount and rate if missing or if it contains text (like "THREE THOUSAND")
+            let qty = parsed.line_items?.[0]?.quantity || parsed.mine_info?.quantity_words;
+            let isText = qty && /[a-zA-Z]/.test(qty);
+            
+            if (!qty || isText) {
+              const reqPay = parsed.pricing?.find(p => p.description?.toLowerCase().includes("requisite payment"));
+              if (reqPay && reqPay.amount && reqPay.rate_per_te) {
+                const amt = parseFloat(reqPay.amount.replace(/,/g, ''));
+                const rate = parseFloat(reqPay.rate_per_te.replace(/,/g, ''));
+                if (amt && rate && rate > 0) {
+                  const calculatedQty = Math.round(amt / rate).toString();
+                  if (!parsed.mine_info) parsed.mine_info = {};
+                  parsed.mine_info.quantity_words = calculatedQty;
+                  if (parsed.line_items && parsed.line_items.length > 0) {
+                    parsed.line_items[0].quantity = calculatedQty;
+                  } else {
+                    parsed.line_items = [{ quantity: calculatedQty, mine: parsed.mine_info.mine }];
+                  }
+                }
+              }
+            }
+
             parsed.pdfUrl = URL.createObjectURL(file);
             parsed.pdfName = file.name;
             parsed.rawFile = file; // Save raw file for uploading

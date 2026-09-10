@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-export default function EditModal({ isOpen, onClose, onSave, title = "Edit Record", columns, initialData }) {
+export default function EditModal({ isOpen, onClose, onSave, title = "Edit Record", columns, initialData, showPdfUpload = true }) {
   const [formData, setFormData] = useState({});
 
   useEffect(() => {
@@ -59,25 +59,27 @@ export default function EditModal({ isOpen, onClose, onSave, title = "Edit Recor
                 </div>
               );
             })}
-            <div style={{ ...styles.formGroup, gridColumn: "1 / -1", marginTop: "10px" }}>
-              <label style={styles.label}>ATTACH PDF (OPTIONAL)</label>
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (file) {
-                    handleChange("pdfFile", file);
-                  }
-                }}
-                style={{ ...styles.input, padding: "8px", background: "var(--bg)" }}
-              />
-              {formData.pdfUrl && !formData.pdfFile && (
-                <div style={{ fontSize: "12px", color: "var(--primary)", marginTop: "4px" }}>
-                  A PDF is already attached. Upload a new one to replace it.
-                </div>
-              )}
-            </div>
+            {showPdfUpload && (
+              <div style={{ ...styles.formGroup, gridColumn: "1 / -1", marginTop: "10px" }}>
+                <label style={styles.label}>ATTACH PDF (OPTIONAL)</label>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      handleChange("pdfFile", file);
+                    }
+                  }}
+                  style={{ ...styles.input, padding: "8px", background: "var(--bg)" }}
+                />
+                {formData.pdfUrl && !formData.pdfFile && (
+                  <div style={{ fontSize: "12px", color: "var(--primary)", marginTop: "4px" }}>
+                    A PDF is already attached. Upload a new one to replace it.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

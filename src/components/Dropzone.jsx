@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { showToast } from "../utils/toast";
 
 /**
  * Dropzone — handles drag-and-drop + click-to-browse for PDF files.
@@ -16,7 +17,16 @@ export default function Dropzone({ onFiles, loading, loadingName, error, title =
     e.preventDefault();
     e.currentTarget.classList.remove("drag");
     const files = Array.from(e.dataTransfer.files || []).filter(f => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
-    if (files.length > 0) onFiles(files);
+    
+    const validFiles = files.filter(f => {
+      if (f.size > 500 * 1024) {
+        showToast("File size 500KB se kam hona chahiye", "error");
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length > 0) onFiles(validFiles);
   };
 
   const handleDragOver = (e) => {
@@ -32,7 +42,16 @@ export default function Dropzone({ onFiles, loading, loadingName, error, title =
 
   const handleChange = (e) => {
     const files = Array.from(e.target.files || []).filter(f => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
-    if (files.length > 0) onFiles(files);
+    
+    const validFiles = files.filter(f => {
+      if (f.size > 500 * 1024) {
+        showToast("File size 500KB se kam hona chahiye", "error");
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length > 0) onFiles(validFiles);
     // reset so the same files can be re-selected
     e.target.value = "";
   };

@@ -164,7 +164,7 @@ export function parseSalesOrder(text) {
     commodity: matchOne(clean, /Name of Commodity\s*:\s*([A-Za-z\- ]+?)(?=\s+(?:STC|ZTCS|Quantity|$))/i),
     stc_distance: matchOne(clean, /STC Distance\s*:\s*([0-9.]+)/i),
     ztcs_applicable: matchOne(clean, /ZTCS Applicable\s*:\s*([A-Za-z]+)/i),
-    quantity_words: matchOne(clean, /Quantity\s*:\s*([A-Z ]+?)(?=\s+(?:Unit|Tranche|Line Item|$))/i).replace(/\s+/g, ' ')
+    quantity_words: matchOne(clean, /Quantity\s*:\s*([A-Z0-9., ]+?)(?=\s+(?:Unit|Tranche|Line Item|$))/i).replace(/\s+/g, ' ')
   };
 
   // ──────────────────────────────────────────────
@@ -277,9 +277,11 @@ export function parseSalesOrder(text) {
   // ──────────────────────────────────────────────
   // VALIDATE
   // ──────────────────────────────────────────────
-  if (line_items.length === 0) {
-    throw new Error("Invalid Format: Uploaded file is not a valid Sales Order PDF (No line items found).");
-  }
+  // Relaxed validation: We already check for "SALES ORDER" at the top.
+  // If line_items are missing due to formatting, we can still show the rest of the data.
+  // if (line_items.length === 0) {
+  //   console.warn("No line items found, but continuing with other extracted data.");
+  // }
 
   // ──────────────────────────────────────────────
   // ASSEMBLE RESULT
