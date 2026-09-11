@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../utils/supabase";
 import EditModal from "../components/EditModal";
 
@@ -8,6 +8,64 @@ export default function RefundLapsePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
+
+  const columns = [
+    { key: "sno", label: "S.No." },
+    { key: "party_name", label: "PARTY NAME" },
+    { key: "mines_name", label: "Mines Name" },
+    { key: "do_no", label: "Do No" },
+    { key: "do_issue_date", label: "Do Issude Date" },
+    { key: "do_last_date", label: "Do Last Date" },
+    { key: "do_qty", label: "Do Qty" },
+    { key: "lifted_qty", label: "Lifted Qty" },
+    { key: "lapsed_qty", label: "Lapsed Qty" },
+    { key: "qty_deduct", label: "Qty deduct" },
+    { key: "rate_pmt", label: "Rate PMT" },
+    { key: "coal_value", label: "COAL VALUE" },
+    { key: "less_emd", label: "LESS EMD" },
+    { key: "refund_amt_of_coal", label: "REFUND AMT OF COAL" },
+    { key: "royalty_pmt", label: "Royalty PMT" },
+    { key: "royalty_amount", label: "ROYALTY AMOUNT" },
+    { key: "nemt_amount", label: "NEMT" },
+    { key: "dmf_amount", label: "DMF" },
+    { key: "preview", label: "Preview" }
+  ];
+
+  const summaryColumns = [
+    { key: "sno", label: "S.No." },
+    { key: "party_name", label: "PARTY NAME" },
+    { key: "royalty_pmt", label: "Royalty PMT" },
+    { key: "nemt", label: "NEMT" },
+    { key: "dmf", label: "DMF" },
+    { key: "tcs", label: "TCS" },
+    { key: "so_value_rate", label: "SO Value Rate" },
+    { key: "less_emd_rate", label: "EMD" }
+  ];
+
+  const [showColumnDropdown, setShowColumnDropdown] = useState(false);
+  const columnDropdownRef = useRef(null);
+
+  const [visibleCols, setVisibleCols] = useState(
+    columns.reduce((acc, col) => ({ ...acc, [col.key]: true }), {})
+  );
+
+  const toggleColumn = (key) => {
+    setVisibleCols(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const setAllColumns = (val) => {
+    setVisibleCols(columns.reduce((acc, col) => ({ ...acc, [col.key]: val }), {}));
+  };
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (columnDropdownRef.current && !columnDropdownRef.current.contains(event.target)) {
+        setShowColumnDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleSaveEdit = async (updatedData) => {
     const item = data[editingIndex];
@@ -30,9 +88,11 @@ export default function RefundLapsePage() {
         const computedLiftedQty = item.do_qty && item.do_qty !== "-" ? (doQty - lapsed) : (updatedData.lifted_qty || "-");
 
         const royalty = parseFloat(item.royalty_pmt) || parseFloat(updatedData.royalty_pmt) || 0;
-        const nemtVal = parseFloat(updatedData.nemt) || parseFloat(item.nemt) || 0;
-        const dmfVal = parseFloat(updatedData.dmf) || parseFloat(item.dmf) || 0;
-        const calculatedRoyaltyAmt = lapsed > 0 ? ((royalty + nemtVal + dmfVal) * lapsed).toFixed(2) : "-";
+        const nemtVal = parseFloat(updatedData.nemt) || parseFloat(item.nemt) || 2;
+        const dmfVal = parseFloat(updatedData.dmf) || parseFloat(item.dmf) || 30;
+        const calculatedRoyaltyAmt = lapsed > 0 ? (royalty * lapsed).toFixed(2) : "-";
+        const calculatedNemtAmt = lapsed > 0 ? ((royalty * lapsed) * (nemtVal / 100)).toFixed(2) : "-";
+        const calculatedDmfAmt = lapsed > 0 ? ((royalty * lapsed) * (dmfVal / 100)).toFixed(2) : "-";
 
         const soValueRate = parseFloat(item.so_value_rate) || parseFloat(updatedData.so_value_rate) || 0;
         const tcsRate = parseFloat(item.tcs) || parseFloat(updatedData.tcs) || 0;
@@ -54,6 +114,8 @@ export default function RefundLapsePage() {
           lapsed_qty: updatedData.lapsed_qty || "-", 
           lifted_qty: computedLiftedQty,
           royalty_amount: calculatedRoyaltyAmt,
+          nemt_amount: calculatedNemtAmt,
+          dmf_amount: calculatedDmfAmt,
           coal_value: calculatedCoalValue,
           less_emd: calculatedLessEmd,
           refund_amt_of_coal: calculatedRefund
@@ -105,9 +167,15 @@ export default function RefundLapsePage() {
           const mappedData = dbData.map((row, index) => {
             const lapsed = parseFloat(row.lapsed_qty) || 0;
             const royalty = parseFloat(row.royalty_pmt) || 0;
-            const nemtVal = parseFloat(row.nemt) || 0;
-            const dmfVal = parseFloat(row.dmf) || 0;
-            const royaltyAmt = lapsed > 0 ? ((royalty + nemtVal + dmfVal) * lapsed).toFixed(2) : "-";
+            const royaltyAmt = lapsed > 0 ? (royalty * lapsed).toFixed(2) : "-";
+            
+            // Fetch percentages for Tax Summary
+            const storedNemt = parseFloat(row.nemt) || 2;
+            const storedDmf = parseFloat(row.dmf) || 30;
+            
+            // Calculate NEMT and DMF amounts for Refund & Lapse table
+            const nemtAmount = lapsed > 0 ? ((royalty * lapsed) * (storedNemt / 100)).toFixed(2) : "-";
+            const dmfAmount = lapsed > 0 ? ((royalty * lapsed) * (storedDmf / 100)).toFixed(2) : "-";
             
             const soValueRate = parseFloat(row.so_value_rate) || 0;
             const tcsRate = parseFloat(row.tcs) || 0;
@@ -124,12 +192,17 @@ export default function RefundLapsePage() {
               calculatedRefund = (parseFloat(calculatedCoalValue) - parseFloat(calculatedLessEmd)).toFixed(2);
             }
 
+            const nemtDisplay = storedNemt;
+            const dmfDisplay = storedDmf;
+
             return {
               id: row.id,
               sno: String(index + 1).padStart(2, "0"),
               party_name: row.name || "-",
-              nemt: row.nemt != null ? row.nemt : "-",
-              dmf: row.dmf != null ? row.dmf : "-",
+              nemt: nemtDisplay,
+              dmf: dmfDisplay,
+              nemt_amount: nemtAmount,
+              dmf_amount: dmfAmount,
               mines_name: row.mine || "-",
               do_no: row.sales_order_number || "-",
               do_issue_date: row.sales_order_valid_from || "-",
@@ -161,39 +234,6 @@ export default function RefundLapsePage() {
 
     fetchData();
   }, []);
-
-  const columns = [
-    { key: "sno", label: "S.No." },
-    { key: "party_name", label: "PARTY NAME" },
-    { key: "mines_name", label: "Mines Name" },
-    { key: "do_no", label: "Do No" },
-    { key: "do_issue_date", label: "Do Issude Date" },
-    { key: "do_last_date", label: "Do Last Date" },
-    { key: "do_qty", label: "Do Qty" },
-    { key: "lifted_qty", label: "Lifted Qty" },
-    { key: "lapsed_qty", label: "Lapsed Qty" },
-    { key: "qty_deduct", label: "Qty deduct" },
-    { key: "rate_pmt", label: "Rate PMT" },
-    { key: "coal_value", label: "COAL VALUE" },
-    { key: "less_emd", label: "LESS EMD" },
-    { key: "refund_amt_of_coal", label: "REFUND AMT OF COAL" },
-    { key: "royalty_pmt", label: "Royalty PMT" },
-    { key: "royalty_amount", label: "ROYALTY AMOUNT" },
-    { key: "nemt", label: "NEMT" },
-    { key: "dmf", label: "DMF" },
-    { key: "preview", label: "Preview" }
-  ];
-
-  const summaryColumns = [
-    { key: "sno", label: "S.No." },
-    { key: "party_name", label: "PARTY NAME" },
-    { key: "royalty_pmt", label: "Royalty PMT" },
-    { key: "nemt", label: "NEMT" },
-    { key: "dmf", label: "DMF" },
-    { key: "tcs", label: "TCS" },
-    { key: "so_value_rate", label: "SO Value Rate" },
-    { key: "less_emd_rate", label: "EMD" }
-  ];
 
   const filteredData = data.filter(row => 
     Object.values(row).some(val => String(val).toLowerCase().includes(searchTerm.toLowerCase()))
@@ -241,6 +281,43 @@ export default function RefundLapsePage() {
             />
           </div>
 
+          <div style={{ position: "relative" }} ref={columnDropdownRef}>
+            <button 
+              className="btn ghost" 
+              onClick={() => setShowColumnDropdown(!showColumnDropdown)}
+              style={{ display: "inline-flex", alignItems: "center", gap: "8px", border: "1px solid var(--line)", borderRadius: "6px", padding: "6px 12px", background: "var(--panel)", color: "var(--text)", fontSize: "14px", fontWeight: "500", cursor: "pointer", transition: "all 0.15s ease", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}
+              onMouseOver={(e) => { e.currentTarget.style.background = "var(--bg)"; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = "var(--panel)"; }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line></svg>
+              Columns
+            </button>
+            {showColumnDropdown && (
+              <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: "220px", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)", zIndex: 100, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--line)", fontSize: "13px", fontWeight: "600", color: "var(--text)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span>Toggle Columns</span>
+                </div>
+                <div style={{ padding: "10px 14px", display: "flex", gap: "12px", borderBottom: "1px solid var(--line)", fontSize: "12px", background: "var(--bg)" }}>
+                  <button onClick={() => setAllColumns(true)} style={{ color: "var(--primary)", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "600" }}>Select All</button>
+                  <button onClick={() => setAllColumns(false)} style={{ color: "var(--muted)", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "500" }}>Deselect All</button>
+                </div>
+                <div style={{ maxHeight: "220px", overflowY: "auto", padding: "8px 0" }}>
+                  {columns.map(col => (
+                    <label key={col.key} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 16px", cursor: "pointer", fontSize: "13px", color: "var(--text)", transition: "background 0.15s", userSelect: "none" }} onMouseOver={(e) => e.currentTarget.style.background = "var(--bg)"} onMouseOut={(e) => e.currentTarget.style.background = "transparent"}>
+                      <input 
+                        type="checkbox" 
+                        checked={visibleCols[col.key]} 
+                        onChange={() => toggleColumn(col.key)} 
+                        style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb", margin: 0 }}
+                      />
+                      {col.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
       
@@ -253,7 +330,7 @@ export default function RefundLapsePage() {
             <thead>
               <tr>
                 {columns.map(col => (
-                  <th key={col.key}>{col.label}</th>
+                  visibleCols[col.key] && <th key={col.key}>{col.label}</th>
                 ))}
                 <th>Action</th>
               </tr>
@@ -275,7 +352,7 @@ export default function RefundLapsePage() {
                 filteredData.map((row, i) => (
                   <tr key={i}>
                     {columns.map(col => (
-                      <td key={col.key}>
+                      visibleCols[col.key] && <td key={col.key}>
                         {col.key === "preview" ? (
                           row.pdf_url ? (
                             <a href={row.pdf_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>

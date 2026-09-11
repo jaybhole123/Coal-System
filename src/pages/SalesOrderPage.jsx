@@ -383,8 +383,8 @@ export default function SalesOrderPage({ state, setState }) {
           rate_per_te: parseNum(reqPay?.rate_per_te || d.pricing?.[0]?.rate_per_te),
           amount: parseNum(reqPay?.amount || d.totals?.requisite_payment || d.pricing?.[0]?.amount),
           royalty_pmt: parseNum(royalty?.rate_per_te),
-          nemt: parseNum(nmet?.rate_per_te),
-          dmf: parseNum(dmf?.rate_per_te),
+          nemt: nmet?.description ? parseNum(nmet.description.match(/(\d+(?:\.\d+)?)%/)?.[1]) || 2 : 2,
+          dmf: dmf?.description ? parseNum(dmf.description.match(/(\d+(?:\.\d+)?)%/)?.[1]) || 30 : 30,
           tcs: parseNum(tcsValue),
           so_value_rate: parseNum(soValueRate),
           less_emd: parseNum(lessEmdRate)

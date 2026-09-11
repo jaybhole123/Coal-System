@@ -103,6 +103,7 @@ export default function App() {
     return localStorage.getItem("active_page") || "dashboard";
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [paymentState, setPaymentState] = useState(() => getInitialState("payment_advice_data", PAYMENT_INIT));
   const [salesOrderState, setSalesOrderState] = useState(SALES_ORDER_INIT);
   const [seclState, setSeclState] = useState(SECL_INIT);
@@ -174,6 +175,8 @@ export default function App() {
         onNavigate={(id) => { setActivePage(id); setIsSidebarOpen(false); }} 
         isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)} 
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
       <div className="main-area">
         <Topbar activePage={activePage} onMenuClick={() => setIsSidebarOpen(true)} />

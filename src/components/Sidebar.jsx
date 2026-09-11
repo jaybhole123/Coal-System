@@ -136,11 +136,11 @@ const NAV = [
   },
 ];
 
-export default function Sidebar({ activePage, onNavigate, isOpen, onClose }) {
+export default function Sidebar({ activePage, onNavigate, isOpen, onClose, isCollapsed, onToggleCollapse }) {
   return (
     <>
       <div className={`sidebar-overlay ${isOpen ? "open" : ""}`} onClick={onClose}></div>
-      <aside className={`sidebar ${isOpen ? "open" : ""}`}>
+      <aside className={`sidebar ${isOpen ? "open" : ""} ${isCollapsed ? "collapsed" : ""}`}>
         {/* Brand */}
       <div className="sidebar-brand">
         <div className="brand-icon" style={{ background: "var(--ember)", color: "#fff", border: "none", boxShadow: "0 4px 12px rgba(0,51,102,0.3)" }}>
@@ -154,6 +154,19 @@ export default function Sidebar({ activePage, onNavigate, isOpen, onClose }) {
           COAL SYSTEM
           <span>Extractor v1.0</span>
         </div>
+        <button 
+          className="sidebar-toggle-btn"
+          onClick={onToggleCollapse}
+          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {isCollapsed ? (
+              <polyline points="9 18 15 12 9 6"></polyline>
+            ) : (
+              <polyline points="15 18 9 12 15 6"></polyline>
+            )}
+          </svg>
+        </button>
       </div>
 
       {/* Nav */}
@@ -175,6 +188,7 @@ export default function Sidebar({ activePage, onNavigate, isOpen, onClose }) {
                 <span className="nav-label">{item.label}</span>
                 {item.badge && (
                   <span
+                    className="nav-badge"
                     style={{
                       fontSize: 9,
                       fontFamily: "var(--font-mono)",
