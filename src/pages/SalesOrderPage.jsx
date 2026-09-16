@@ -27,7 +27,7 @@ export default function SalesOrderPage({ state, setState }) {
         const from = (currentPage - 1) * PAGE_SIZE;
         const to = from + PAGE_SIZE - 1;
 
-        const { data: dbData, error: dbError, count } = await supabase
+        let { data: dbData, error: dbError, count } = await supabase
           .from('sales_orders')
           .select('*', { count: 'exact' })
           .order('created_at', { ascending: false })
