@@ -57,6 +57,23 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
     });
   }, [allItems, searchTerm]);
 
+  const totals = React.useMemo(() => {
+    let totalQty = 0;
+    let totalBidPrice = 0;
+    filteredItems.forEach(row => {
+      // Remove any commas and parse as float
+      const qtyStr = String(row["Quantity Allotted"] || "").replace(/,/g, '');
+      const bidStr = String(row["Winning Bid Price (Rs/MT)"] || "").replace(/,/g, '');
+      
+      const qty = parseFloat(qtyStr);
+      const bid = parseFloat(bidStr);
+      
+      if (!isNaN(qty)) totalQty += qty;
+      if (!isNaN(bid)) totalBidPrice += bid;
+    });
+    return { totalQty, totalBidPrice };
+  }, [filteredItems]);
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (columnDropdownRef.current && !columnDropdownRef.current.contains(event.target)) {
@@ -138,6 +155,25 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
 
   return (
     <section id="results">
+      {/* TOTALS CARDS */}
+      {filteredItems && filteredItems.length > 0 && (
+        <div style={{ display: "flex", gap: "16px", marginBottom: "24px", flexWrap: "wrap" }}>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "12px", padding: "20px", flex: 1, minWidth: "240px", boxShadow: "0 4px 12px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <div style={{ color: "var(--muted)", fontSize: "13px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>Total Quantity Allotted</div>
+            <div style={{ color: "var(--text)", fontSize: "32px", fontWeight: "800", display: "flex", alignItems: "baseline", gap: "8px" }}>
+              {totals.totalQty.toLocaleString('en-IN')}
+              <span style={{ fontSize: "16px", color: "var(--muted)", fontWeight: "600" }}>MT</span>
+            </div>
+          </div>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "12px", padding: "20px", flex: 1, minWidth: "240px", boxShadow: "0 4px 12px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <div style={{ color: "var(--muted)", fontSize: "13px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>Total Winning Bid Price (Rs/MT)</div>
+            <div style={{ color: "#16a34a", fontSize: "32px", fontWeight: "800", display: "flex", alignItems: "baseline" }}>
+              ₹{totals.totalBidPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Action bar ── */}
       <div className="results-bar">
         <div>
@@ -196,6 +232,7 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
       </div>
 
       <div className="results-content">
+
         <div className="summary-section" style={{ marginTop: 0 }}>
           <div className="summary-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
             <div className="summary-title">Extracted Items</div>

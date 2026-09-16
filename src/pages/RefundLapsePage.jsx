@@ -8,6 +8,9 @@ export default function RefundLapsePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const columns = [
     { key: "sno", label: "S.No." },
@@ -239,6 +242,16 @@ export default function RefundLapsePage() {
     Object.values(row).some(val => String(val).toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   return (
     <div className="page-content">
       {toastMessage && (
@@ -342,14 +355,14 @@ export default function RefundLapsePage() {
                     Loading data...
                   </td>
                 </tr>
-              ) : filteredData.length === 0 ? (
+              ) : paginatedData.length === 0 ? (
                 <tr>
                   <td colSpan={columns.length + 1} style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
                     No data available
                   </td>
                 </tr>
               ) : (
-                filteredData.map((row, i) => (
+                paginatedData.map((row, i) => (
                   <tr key={i}>
                     {columns.map(col => (
                       visibleCols[col.key] && <td key={col.key}>
@@ -432,14 +445,14 @@ export default function RefundLapsePage() {
                     Loading data...
                   </td>
                 </tr>
-              ) : filteredData.length === 0 ? (
+              ) : paginatedData.length === 0 ? (
                 <tr>
                   <td colSpan={summaryColumns.length} style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
                     No data available
                   </td>
                 </tr>
               ) : (
-                filteredData.map((row, i) => (
+                paginatedData.map((row, i) => (
                   <tr key={i}>
                     {summaryColumns.map(col => (
                       <td key={col.key}>{row[col.key]}</td>
@@ -451,6 +464,34 @@ export default function RefundLapsePage() {
           </table>
         </div>
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px", padding: "16px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "12px" }}>
+          <div style={{ fontSize: "13px", color: "var(--muted)", fontWeight: "500" }}>
+            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} entries
+          </div>
+          <div style={{ display: "flex", gap: "6px" }}>
+            <button 
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              style={{ padding: "6px 12px", border: "1px solid var(--line)", borderRadius: "6px", background: currentPage === 1 ? "var(--bg)" : "var(--panel)", color: currentPage === 1 ? "var(--muted)" : "var(--text)", cursor: currentPage === 1 ? "not-allowed" : "pointer", fontSize: "13px", fontWeight: "600", transition: "all 0.15s ease" }}
+            >
+              Previous
+            </button>
+            <div style={{ display: "flex", alignItems: "center", padding: "0 8px", fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
+              Page {currentPage} of {totalPages}
+            </div>
+            <button 
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              style={{ padding: "6px 12px", border: "1px solid var(--line)", borderRadius: "6px", background: currentPage === totalPages ? "var(--bg)" : "var(--panel)", color: currentPage === totalPages ? "var(--muted)" : "var(--text)", cursor: currentPage === totalPages ? "not-allowed" : "pointer", fontSize: "13px", fontWeight: "600", transition: "all 0.15s ease" }}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       <EditModal
         isOpen={editingIndex !== null}

@@ -16,7 +16,13 @@ export default function Dashboard({ onNavigate }) {
     activeAuctions: 0,
     distData: [
       { name: "No Data", value: 1 }
-    ]
+    ],
+    soExpired: 0,
+    soValid: 0,
+    seclQty: 0,
+    seclBid: 0,
+    paExpired: 0,
+    paValid: 0
   });
 
   const [dynamicTrendData, setDynamicTrendData] = useState([]);
@@ -32,9 +38,9 @@ export default function Dashboard({ onNavigate }) {
           { data: seclIntimations }
         ] = await Promise.all([
           supabase.from('invoices').select('created_at, invoice_date, total_amount'),
-          supabase.from('sales_orders').select('created_at, sales_order_valid_from, amount'),
-          supabase.from('secl_payment_advices').select('created_at, auction_date, grand_total'),
-          supabase.from('secl_intimation_format_1').select('created_at')
+          supabase.from('sales_orders').select('created_at, sales_order_valid_from, sales_order_valid_to, amount'),
+          supabase.from('secl_payment_advices').select('created_at, auction_date, grand_total, due_date'),
+          supabase.from('secl_intimation_format_1').select('created_at, quantity_allotted, winning_bid_price_rs_mt')
         ]);
 
         const safeArr = (arr) => Array.isArray(arr) ? arr : [];
@@ -51,13 +57,67 @@ export default function Dashboard({ onNavigate }) {
         so.forEach(s => totalValue += Number(s.amount) || 0);
         pa.forEach(p => totalValue += Number(p.grand_total) || 0);
 
+        // The Document Distribution Pie Chart is calculated after the sub-card stats are computed below.
+
+        // Calculate Sub-card Stats
+        let soExpired = 0;
+        let soValid = 0;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        so.forEach(s => {
+          if (!s.sales_order_valid_to || s.sales_order_valid_to === "-" || s.sales_order_valid_to === "Not Found") {
+            soValid++;
+          } else {
+            const validTo = new Date(s.sales_order_valid_to);
+            if (isNaN(validTo)) {
+              soValid++;
+            } else {
+              validTo.setHours(0, 0, 0, 0);
+              const diffTime = validTo - today;
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              if (diffDays < 0) soExpired++;
+              else soValid++;
+            }
+          }
+        });
+
+        let seclQty = 0;
+        let seclBid = 0;
+        secl.forEach(s => {
+          seclQty += Number(s.quantity_allotted) || 0;
+          seclBid += Number(s.winning_bid_price_rs_mt) || 0;
+        });
+
+        let paExpired = 0;
+        let paValid = 0;
+        pa.forEach(p => {
+          if (!p.due_date || p.due_date === "-" || p.due_date === "Not Found") {
+            paValid++;
+          } else {
+            const validTo = new Date(p.due_date);
+            if (isNaN(validTo)) {
+              paValid++;
+            } else {
+              validTo.setHours(0, 0, 0, 0);
+              const diffTime = validTo - today;
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              if (diffDays < 0) paExpired++;
+              else paValid++;
+            }
+          }
+        });
+
+        // Update Document Distribution Pie Chart using the new sub-card splits
         let distData = [
-          { name: "Invoices", value: inv.length },
-          { name: "Sales Orders", value: so.length },
-          { name: "Payment Advices", value: pa.length },
-          { name: "SECL Extractions", value: secl.length }
+          { name: "Valid Sales Orders", value: soValid },
+          { name: "Expired Sales Orders", value: soExpired },
+          { name: "Valid Payment Advices", value: paValid },
+          { name: "Expired Payment Advices", value: paExpired },
+          { name: "SECL Extractions", value: secl.length },
+          { name: "Invoices", value: inv.length }
         ].filter(d => d.value > 0);
-        
+
         if (distData.length === 0) {
           distData = [{ name: "No Data", value: 1 }];
         }
@@ -133,7 +193,13 @@ export default function Dashboard({ onNavigate }) {
           totalDocs,
           totalValue,
           activeAuctions: aucCount,
-          distData
+          distData,
+          soExpired,
+          soValid,
+          seclQty,
+          seclBid,
+          paExpired,
+          paValid
         });
         
         setDynamicTrendData(newTrendData);
@@ -155,7 +221,7 @@ export default function Dashboard({ onNavigate }) {
   };
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "10px 0 40px" }}>
+    <div style={{ maxWidth: "100%", margin: "0 auto", padding: "10px 32px 40px" }}>
       <div style={{ marginBottom: 30 }}>
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, margin: "0 0 8px 0", color: "var(--text)" }}>
           Dashboard Overview
@@ -165,43 +231,58 @@ export default function Dashboard({ onNavigate }) {
         </p>
       </div>
 
-      {/* TOP STATS */}
+      {/* TOP STATS REMOVED PER USER REQUEST */}
+
+      <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, margin: "0 0 20px 0", color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+        Extraction Summaries
+      </h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20, marginBottom: 32 }}>
-        <StatCard title="Total Documents" value={stats.totalDocs.toLocaleString()} delta="Supabase DB" icon="📄" trend="up" />
-        <StatCard title="Total Value Processed" value={`₹ ${formatCompact(stats.totalValue)}`} delta="From Invoices/Payments" icon="💰" trend="neutral" />
-        <StatCard title="Active Auctions" value={stats.activeAuctions} delta="From Auction Module" icon="🔨" trend="neutral" />
-        <StatCard title="System Accuracy" value="99.8%" delta="All extractors operational" icon="⚡" trend="neutral" />
+        <StatCard 
+          title="Total Valid (Sales Order)" 
+          value={stats.soValid.toLocaleString()} 
+          delta="Active DOs" 
+          icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>} 
+          trend="up" 
+        />
+        <StatCard 
+          title="Total Expired (Sales Order)" 
+          value={stats.soExpired.toLocaleString()} 
+          delta="Expired DOs" 
+          icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>} 
+          trend="down" 
+        />
+        <StatCard 
+          title="Total Valid (Payment Advice)" 
+          value={stats.paValid.toLocaleString()} 
+          delta="Active Payment Advices" 
+          icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>} 
+          trend="up" 
+        />
+        <StatCard 
+          title="Total Expired (Payment Advice)" 
+          value={stats.paExpired.toLocaleString()} 
+          delta="Expired Payment Advices" 
+          icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>} 
+          trend="down" 
+        />
+        <StatCard 
+          title="Total Qty Allotted (SECL Intimation)" 
+          value={`${stats.seclQty.toLocaleString('en-IN')} MT`} 
+          delta="From Intimation" 
+          icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>} 
+          trend="neutral" 
+        />
+        <StatCard 
+          title="Total Winning Bid (SECL Intimation)" 
+          value={`₹ ${formatCompact(stats.seclBid)}`} 
+          delta="From Intimation" 
+          icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12M6 8h12M6 13h8.5l-8.5 8M10 8c0 3-2 5-5 5"></path></svg>} 
+          trend="neutral" 
+        />
       </div>
 
       {/* MAIN CHARTS ROW */}
       <div className="dash-grid-main" style={{ marginBottom: 24 }}>
-        {/* Trend Area Chart */}
-        <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, margin: "0 0 20px 0", color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Processing Volume Trend (6 Months)
-          </h3>
-          <div style={{ height: 300, width: "100%" }}>
-            <ResponsiveContainer>
-              <AreaChart data={dynamicTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorVol" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} />
-                <RechartsTooltip 
-                  contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
-                  cursor={{ stroke: '#4f46e5', strokeWidth: 1, strokeDasharray: '4 4' }}
-                />
-                <Area type="monotone" dataKey="documents" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorVol)" activeDot={{ r: 6, fill: "#4f46e5", stroke: "white", strokeWidth: 2 }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
         {/* Donut Chart */}
         <div className="card" style={{ padding: 24 }}>
           <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, margin: "0 0 20px 0", color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
@@ -218,38 +299,19 @@ export default function Dashboard({ onNavigate }) {
                   dataKey="value" 
                   stroke="none"
                 >
-                  {stats.distData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.name === "No Data" ? "#e5e7eb" : COLORS[index % COLORS.length]} />
-                  ))}
+                  {stats.distData.map((entry, index) => {
+                    let color = COLORS[index % COLORS.length];
+                    if (entry.name === "No Data") color = "#e5e7eb";
+                    else if (entry.name.includes("Expired")) color = "#ef4444"; // red
+                    else if (entry.name.includes("Valid")) color = "#10b981";   // green
+                    else if (entry.name.includes("SECL")) color = "#f59e0b";    // orange
+                    else if (entry.name.includes("Invoices")) color = "#3b82f6";// blue
+                    return <Cell key={`cell-${index}`} fill={color} />;
+                  })}
                 </Pie>
                 <RechartsTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: 12, paddingTop: 20 }} />
               </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* SECOND ROW */}
-      <div className="dash-grid-main">
-        {/* Bar Chart */}
-        <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, margin: "0 0 20px 0", color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Weekly Extractor Activity
-          </h3>
-          <div style={{ height: 300, width: "100%" }}>
-            <ResponsiveContainer>
-              <BarChart data={dynamicActivityData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} />
-                <RechartsTooltip 
-                  contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} 
-                  cursor={{ fill: "rgba(79, 70, 229, 0.05)" }} 
-                />
-                <Bar dataKey="processed" name="Processed" fill="#004080" radius={[4, 4, 0, 0]} barSize={28} />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
-              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>

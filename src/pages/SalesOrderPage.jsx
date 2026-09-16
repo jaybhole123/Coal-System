@@ -11,7 +11,7 @@ import { supabase } from "../utils/supabase";
  * Props: state & setState passed from App so navigating away and back preserves data.
  */
 export default function SalesOrderPage({ state, setState }) {
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 50;
   const { view, loading, loadingName, error, data, fileName } = state;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -33,7 +33,14 @@ export default function SalesOrderPage({ state, setState }) {
           .order('created_at', { ascending: false })
           .range(from, to);
 
-        if (dbError) throw dbError;
+        if (dbError) {
+          // If the requested range is out of bounds (e.g. page 2 when only 10 records exist), PostgREST returns 416
+          if (dbError.code === 'PGRST103' || dbError.message?.includes('416')) {
+            dbData = [];
+          } else {
+            throw dbError;
+          }
+        }
 
         setTotalCount(count || 0);
 
@@ -69,13 +76,21 @@ export default function SalesOrderPage({ state, setState }) {
             so_value_rate: row.so_value_rate
           }));
 
-          setState(s => ({ 
-            ...s, 
-            data: mappedData, 
-            view: "results", 
-            fileName: "Database Data",
-            loading: false 
-          }));
+          setState(s => {
+            // Append data if loading subsequent pages, otherwise replace
+            const newData = currentPage === 1 ? mappedData : [...(s.data || []), ...mappedData];
+            
+            // Remove duplicates by ID in case of overlapping fetches
+            const uniqueData = Array.from(new Map(newData.map(item => [item.id || item, item])).values());
+            
+            return { 
+              ...s, 
+              data: uniqueData, 
+              view: "results", 
+              fileName: "Database Data",
+              loading: false 
+            };
+          });
         } else if (currentPage === 1) {
           setState(s => ({ ...s, loading: false, view: "drop", data: null, fileName: "" }));
         } else {
@@ -100,7 +115,7 @@ export default function SalesOrderPage({ state, setState }) {
 
       // Upload PDF to Supabase Storage if provided
       if (formData.pdfFile) {
-        const fileExt = formData.pdfFile.name.split('.').pop();
+        const fileExt = (formData.pdfFile.name || "document.pdf").split('.').pop();
         const filePath = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
           .from('pdfs')
@@ -314,7 +329,7 @@ export default function SalesOrderPage({ state, setState }) {
         
         // Upload if we have a new PDF
         if (d.rawFile) {
-          const fileExt = d.rawFile.name.split('.').pop();
+          const fileExt = (d.rawFile.name || "document.pdf").split('.').pop();
           const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
           
           const { error: uploadError } = await supabase.storage
@@ -397,7 +412,8 @@ export default function SalesOrderPage({ state, setState }) {
       
       showToast("Data and PDFs saved successfully!");
       
-      // Trigger a re-fetch to get correct IDs from DB without setting data to null
+      // Trigger a re-fetch to get correct IDs from DB
+      setCurrentPage(1);
       setRefreshTrigger(prev => prev + 1);
     } catch (err) {
       console.error("Supabase Save Error:", err);

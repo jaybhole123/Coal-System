@@ -93,18 +93,28 @@ function matchOne(text, regex) {
 export function parseSalesOrder(text) {
   const clean = text.replace(/\s+/g, ' ').trim();
 
-  if (!clean.toUpperCase().includes("SALES ORDER") && !clean.toUpperCase().includes("DELIVERY ORDER")) {
-    throw new Error("Invalid Format: Uploaded file is not a Sales Order PDF.");
+  const upperClean = clean.toUpperCase();
+  const isValidFormat = upperClean.includes("SALES ORDER") || 
+                        upperClean.includes("DELIVERY ORDER") ||
+                        upperClean.includes("SOUTH EASTERN COALFIELDS") ||
+                        upperClean.includes("DO NO") ||
+                        upperClean.includes("D.O.") ||
+                        upperClean.includes("DELIVERY");
+
+  if (!isValidFormat) {
+    console.warn("Format warning: Did not find standard Sales Order keywords. Attempting to parse anyway.");
   }
+  
+  console.log("=== PDF TEXT START ===\n" + clean + "\n=== PDF TEXT END ===");
 
   // ──────────────────────────────────────────────
   // COMPANY / HEADER
   // ──────────────────────────────────────────────
   const company = {
-    name: matchOne(clean, /(South Eastern Coalfields Limited)/i),
-    address: matchOne(clean, /SECL HQ,?\s*(.+?)\s*(?:Telephone|IN\b|Office Area)/i),
+    name: matchOne(clean, /(^[A-Z][A-Za-z ]+ Limited)\b/i) || "South Eastern Coalfields Limited",
+    address: matchOne(clean, /SECL HQ,?\s*(.+?)\s*(?:Telephone|IN\b|Office Area)/i) || "Seepat Road, Bilaspur Chhattisgarh 495006",
     gst: matchOne(clean, /GST\s*:\s*([0-9A-Z,]+)/i),
-    office_area: matchOne(clean, /Office Area\s*:\s*([A-Za-z0-9 ]+?)(?=\s+(?:Telephone|Fax|E-Mail|IN\b|GST|CIN|$))/i)
+    office_area: matchOne(clean, /Office Area\s*[:]?\s*(.+?)(?=\s+SECL\s*HQ)/i) || matchOne(clean, /Office Area\s*:\s*([A-Za-z ]+)\b/i)
   };
 
   // ──────────────────────────────────────────────
@@ -114,8 +124,19 @@ export function parseSalesOrder(text) {
   // Try multiple patterns for the party name
   let partyName = '';
 
+  const partyMatch = clean.match(/(?:Name|Nane)\s*:\s*([A-Za-z0-9 .&\-\/\(\)]+?)(?=\s+(?:Address|Addre8s|Addres0|Name|Nane)\s*:)/gi);
+  if (partyMatch && partyMatch.length > 0) {
+    // If there are multiple matches, take the first one which is usually the cleanest
+    let bestMatch = partyMatch[0].replace(/(?:Name|Nane)\s*:\s*/i, '').trim();
+    // Sometimes OCR adds extra 'Name:' inside, clean it up
+    bestMatch = bestMatch.split(/(?:Name|Nane)\s*:/i)[0].trim();
+    partyName = bestMatch;
+  }
+
   // Pattern 1: "Sold to Party:XXXXXXX Name : SOME NAME ... Address"
-  partyName = matchOne(clean, /Sold to Party\s*:\s*\d+\s*Name\s*:\s*([A-Za-z0-9 .&\-\/\(\)]+?)(?=\s+Address\s*:)/i);
+  if (!partyName) {
+    partyName = matchOne(clean, /Sold to Party\s*:\s*\d+\s*Name\s*:\s*([A-Za-z0-9 .&\-\/\(\)]+?)(?=\s+Address\s*:)/i);
+  }
 
   // Pattern 2: "Name : SOME NAME Name :" (repeated in 3-column layout)
   if (!partyName) {
@@ -136,17 +157,17 @@ export function parseSalesOrder(text) {
   // ORDER INFO
   // ──────────────────────────────────────────────
   const order_info = {
-    sales_order_number: matchOne(clean, /Sales Order Number\s*:\s*(\d+)/i),
-    sales_order_date: matchOne(clean, /Sales Order Date\s*:\s*([A-Za-z]+ \d{1,2},\s*\d{4})/i),
-    contract_number: matchOne(clean, /Contract Number\s*:\s*(\d+)/i),
-    sales_order_valid_from: matchOne(clean, /Sales Order Valid From\s*:\s*([A-Za-z]+ \d{1,2},\s*\d{4})/i),
-    sales_order_valid_to: matchOne(clean, /Sales Order Valid To\s*:\s*([A-Za-z]+ \d{1,2},\s*\d{4})/i),
+    sales_order_number: matchOne(clean, /(?:Sales|Salee)\s+Order\s+(?:Number|Nu ber)\s*:\s*(\w+[\/\-]?\w*)/i),
+    sales_order_date: matchOne(clean, /(?:Sales|Sles)\s+Order\s+Date\s*:\s*([a-zA-Z]{3} \d{1,2}, \d{4})/i),
+    contract_number: matchOne(clean, /Contract Number\s*:\s*(\d+)/i) || matchOne(clean, /FSA No\.?\s*:\s*([A-Za-z0-9]+)/i),
+    sales_order_valid_from: matchOne(clean, /(?:Sales|sles)\s+Order\s+(?:Valid\s+From|Velld\s+ro)\s*:\s*([a-zA-Z]{3} \d{1,2}, \d{4})/i),
+    sales_order_valid_to: matchOne(clean, /(?:Sales|Sles)\s+Order\s+(?:Valid\s+To|Velld\s+To)\s*:\s*([a-zA-Z]{3} \d{1,2}, \d{4})/i),
     month: matchOne(clean, /\bMonth\s*:\s*(\d+)/i),
     legacy_fsa_no: matchOne(clean, /Legacy FSA No\s*:\s*(\d+)/i),
     scheme_name: matchOne(clean, /Scheme Name\s*:\s*(.+?)(?=\s+(?:Auction Date|Area\s*:|Contract Signing))/i),
-    auction_date: matchOne(clean, /Auction Date\s*:\s*([\d.A-Za-z]*)/i),
-    contract_signing_date: matchOne(clean, /Contract Signing Date\s*:\s*([\d.A-Za-z]+)/i),
-    contract_expiry_date: matchOne(clean, /Contract Expiry Date\s*:\s*([\d.A-Za-z]+)/i),
+    auction_date: matchOne(clean, /Auction Date\s*:\s*([\d\.]+ [a-zA-Z]{3} \d{4}|[a-zA-Z]{3} \d{1,2}, \d{4})/i),
+    contract_signing_date: matchOne(clean, /Contract Signing Date\s*:\s*([\d\.]+ [a-zA-Z]{3} \d{4}|[a-zA-Z]{3} \d{1,2}, \d{4})/i),
+    contract_expiry_date: matchOne(clean, /Contract Expiry Date\s*:\s*([\d\.]+ [a-zA-Z]{3} \d{4}|[a-zA-Z]{3} \d{1,2}, \d{4})/i),
     mode_of_transport: matchOne(clean, /Mode of Transport\s*:\s*([A-Za-z]+)/i),
     type_of_consumer: matchOne(clean, /Type of Consumer\s*:\s*([A-Za-z ]+?)(?=\s+(?:PCB|STC|Factory|Name of|Quantity))/i),
     destination: matchOne(clean, /\bDestination\s*:\s*([A-Za-z ]*?)(?=\s+(?:Line Item|$))/i),

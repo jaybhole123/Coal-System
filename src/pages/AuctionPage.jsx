@@ -153,7 +153,7 @@ export default function AuctionPage() {
 
       // Upload PDF if exists
       if (pdfFile) {
-        const fileExt = pdfFile.name.split('.').pop();
+        const fileExt = (pdfFile.name || "document.pdf").split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
@@ -265,18 +265,27 @@ export default function AuctionPage() {
         </div>
       )}
 
-      <div className="topbar" style={{ padding: "0 0 20px 0", borderBottom: "none" }}>
-        <h2>Auction Management</h2>
-        <button className="btn" onClick={() => { resetForm(); setIsModalOpen(true); }}>
-          + Add Form
-        </button>
+      <div className="results-bar" style={{ marginBottom: "24px" }}>
+        <div>
+          <div className="results-file" style={{ fontSize: "20px", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            Auction Management
+          </div>
+          <div className="results-hint" style={{ marginTop: "4px" }}>Manage and track all auction notifications</div>
+        </div>
+        <div className="results-actions" style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <button className="btn" onClick={() => { resetForm(); setIsModalOpen(true); }} style={{ display: "inline-flex", alignItems: "center", gap: "6px", boxShadow: "0 4px 12px rgba(79, 70, 229, 0.2)" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            ADD AUCTION
+          </button>
+        </div>
       </div>
 
-      <div className="table-card">
-        <div className="table-header">
-          <div className="table-title">Auction Data Table</div>
+      <div className="summary-section" style={{ marginTop: 0 }}>
+        <div className="summary-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+          <div className="summary-title" style={{ fontSize: "16px", fontWeight: "700", color: "var(--text)" }}>Registered Auctions</div>
         </div>
-        <div className="table-scroll" style={{ overflowX: "auto" }}>
+        <div className="summary-table-wrap">
           <table className="stable">
             <thead>
               <tr>
@@ -314,8 +323,9 @@ export default function AuctionPage() {
                     <td>{row.coal_company || "-"}</td>
                     <td>
                       {row.pdf_url ? (
-                        <a href={row.pdf_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
-                          View PDF
+                        <a href={row.pdf_url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 8px", background: "rgba(239, 68, 68, 0.1)", color: "#dc2626", borderRadius: "4px", textDecoration: "none", fontWeight: 600, fontSize: "12px", border: "1px solid rgba(239, 68, 68, 0.2)" }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                          PDF
                         </a>
                       ) : <span style={{ color: "var(--muted)" }}>-</span>}
                     </td>
@@ -323,14 +333,17 @@ export default function AuctionPage() {
                       <div style={{ display: "flex", gap: "8px", alignItems: "center", justifyContent: "center" }}>
                         <button
                           style={{
-                            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
-                            padding: "6px", fontSize: "11px", fontWeight: "500", borderRadius: "4px",
-                            border: "1px solid rgba(59, 130, 246, 0.3)", background: "transparent", color: "#3b82f6",
+                            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+                            padding: "6px 10px", fontSize: "12px", fontWeight: "600", borderRadius: "6px",
+                            border: "none", background: "#e0e7ff", color: "#4338ca", transition: "all 0.2s"
                           }}
+                          onMouseOver={(e) => { e.currentTarget.style.background = "#c7d2fe"; }}
+                          onMouseOut={(e) => { e.currentTarget.style.background = "#e0e7ff"; }}
                           onClick={() => handleViewClick(row)}
                           title="View Details"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                          View
                         </button>
                       </div>
                     </td>
@@ -474,13 +487,55 @@ export default function AuctionPage() {
             </div>
 
             <div className="auction-modal-body" style={{ padding: "24px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "32px", background: "#f8fafc", padding: "20px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}><strong style={{ color: "#64748b", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px" }}>BIDDER</strong> <span style={{ color: "#0f172a", fontSize: "14px", fontWeight: "600" }}>{viewData.bidder || "-"}</span></div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}><strong style={{ color: "#64748b", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px" }}>COAL COMPANY</strong> <span style={{ color: "#0f172a", fontSize: "14px", fontWeight: "600" }}>{viewData.coal_company || "-"}</span></div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}><strong style={{ color: "#64748b", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px" }}>AUCTION SOURCE</strong> <span style={{ color: "#0f172a", fontSize: "14px", fontWeight: "600" }}>{viewData.auction_source || "-"}</span></div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}><strong style={{ color: "#64748b", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px" }}>NOTIFICATION DATE</strong> <span style={{ color: "#0f172a", fontSize: "14px", fontWeight: "600" }}>{viewData.notification_date || "-"}</span></div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}><strong style={{ color: "#64748b", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px" }}>BID DATE</strong> <span style={{ color: "#0f172a", fontSize: "14px", fontWeight: "600" }}>{viewData.bid_date || "-"}</span></div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}><strong style={{ color: "#64748b", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px" }}>BID CLOSING DATE</strong> <span style={{ color: "#0f172a", fontSize: "14px", fontWeight: "600" }}>{viewData.bid_closing_date || "-"}</span></div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px", marginBottom: "32px" }}>
+                
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#64748b" }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    <strong style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px" }}>BIDDER</strong> 
+                  </div>
+                  <span style={{ color: "#0f172a", fontSize: "15px", fontWeight: "600" }}>{viewData.bidder || "-"}</span>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#64748b" }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><path d="M9 22v-4h6v4"></path><path d="M8 6h.01"></path><path d="M16 6h.01"></path><path d="M12 6h.01"></path><path d="M12 10h.01"></path><path d="M12 14h.01"></path><path d="M16 10h.01"></path><path d="M16 14h.01"></path><path d="M8 10h.01"></path><path d="M8 14h.01"></path></svg>
+                    <strong style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px" }}>COAL COMPANY</strong> 
+                  </div>
+                  <span style={{ color: "#0f172a", fontSize: "15px", fontWeight: "600" }}>{viewData.coal_company || "-"}</span>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#64748b" }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                    <strong style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px" }}>AUCTION SOURCE</strong> 
+                  </div>
+                  <span style={{ color: "#0f172a", fontSize: "15px", fontWeight: "600" }}>{viewData.auction_source || "-"}</span>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#64748b" }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    <strong style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px" }}>NOTIFICATION DATE</strong> 
+                  </div>
+                  <span style={{ color: "#0f172a", fontSize: "15px", fontWeight: "600" }}>{viewData.notification_date || "-"}</span>
+                </div>
+                
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#64748b" }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    <strong style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px" }}>BID DATE</strong> 
+                  </div>
+                  <span style={{ color: "#0f172a", fontSize: "15px", fontWeight: "600" }}>{viewData.bid_date || "-"}</span>
+                </div>
+                
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#ef4444" }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <strong style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px" }}>BID CLOSING DATE</strong> 
+                  </div>
+                  <span style={{ color: "#0f172a", fontSize: "15px", fontWeight: "600" }}>{viewData.bid_closing_date || "-"}</span>
+                </div>
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>

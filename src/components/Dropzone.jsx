@@ -19,8 +19,8 @@ export default function Dropzone({ onFiles, loading, loadingName, error, title =
     const files = Array.from(e.dataTransfer.files || []).filter(f => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
     
     const validFiles = files.filter(f => {
-      if (f.size > 500 * 1024) {
-        showToast("File size 500KB se kam hona chahiye", "error");
+      if (f.size > 10 * 1024 * 1024) {
+        showToast("File size 10MB se kam hona chahiye. Kripya choti file upload karein.", "error");
         return false;
       }
       return true;
@@ -44,8 +44,8 @@ export default function Dropzone({ onFiles, loading, loadingName, error, title =
     const files = Array.from(e.target.files || []).filter(f => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
     
     const validFiles = files.filter(f => {
-      if (f.size > 500 * 1024) {
-        showToast("File size 500KB se kam hona chahiye", "error");
+      if (f.size > 10 * 1024 * 1024) {
+        showToast("File size 10MB se kam hona chahiye. Kripya choti file upload karein.", "error");
         return false;
       }
       return true;
