@@ -95,7 +95,9 @@ export default function SalesOrderResults({
 
     if (selectedDate) {
       result = result.filter(({ raw }) => {
-        if (!raw.created_at) return false;
+        // Always show newly uploaded (unsaved) records that don't have a created_at date yet
+        if (!raw.created_at) return true;
+        
         const rawDate = new Date(raw.created_at);
         if (isNaN(rawDate)) return false;
         

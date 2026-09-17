@@ -62,7 +62,9 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
 
     if (selectedDate) {
       result = result.filter(item => {
-        if (!item.createdAt) return false;
+        // Always show newly uploaded (unsaved) records that don't have a createdAt date yet
+        if (!item.createdAt) return true;
+        
         const itemDate = new Date(item.createdAt);
         if (isNaN(itemDate)) return false;
         
