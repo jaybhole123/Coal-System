@@ -4,13 +4,16 @@ import EditModal from "../components/EditModal";
 
 export default function RefundLapsePage() {
   const [data, setData] = useState([]);
+  const [activeTab, setActiveTab] = useState("refundLapse");
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
   
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [totalCount, setTotalCount] = useState(0);
+  const observerRef = useRef(null);
+  const itemsPerPage = 50;
 
   const columns = [
     { key: "sno", label: "S.No." },
@@ -159,14 +162,26 @@ export default function RefundLapsePage() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const { data: dbData, error } = await supabase
+        const from = (currentPage - 1) * itemsPerPage;
+        const to = from + itemsPerPage - 1;
+
+        let { data: dbData, error, count } = await supabase
           .from('sales_orders')
-          .select('*')
-          .order('created_at', { ascending: true });
+          .select('*', { count: 'exact' })
+          .order('created_at', { ascending: true })
+          .range(from, to);
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === 'PGRST103' || error.message?.includes('416')) {
+            dbData = [];
+          } else {
+            throw error;
+          }
+        }
 
-        if (dbData) {
+        setTotalCount(count || 0);
+
+        if (dbData && dbData.length > 0) {
           const mappedData = dbData.map((row, index) => {
             const lapsed = parseFloat(row.lapsed_qty) || 0;
             const royalty = parseFloat(row.royalty_pmt) || 0;
@@ -226,7 +241,11 @@ export default function RefundLapsePage() {
               pdf_url: row.pdf_url || null
             };
           });
-          setData(mappedData);
+          
+          setData(prev => {
+            const newData = currentPage === 1 ? mappedData : [...prev, ...mappedData];
+            return Array.from(new Map(newData.map(item => [item.id, item])).values());
+          });
         }
       } catch (err) {
         console.error("Error fetching sales orders for Refund/Lapse page:", err);
@@ -236,7 +255,22 @@ export default function RefundLapsePage() {
     };
 
     fetchData();
-  }, []);
+  }, [currentPage]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLoading && data.length < totalCount) {
+          setCurrentPage(p => p + 1);
+        }
+      },
+      { threshold: 1.0 }
+    );
+    if (observerRef.current) {
+      observer.observe(observerRef.current);
+    }
+    return () => observer.disconnect();
+  }, [isLoading, data.length, totalCount]);
 
   const filteredData = data.filter(row => 
     Object.values(row).some(val => String(val).toLowerCase().includes(searchTerm.toLowerCase()))
@@ -246,11 +280,8 @@ export default function RefundLapsePage() {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const paginatedData = filteredData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  // Use the entire fetched dataset for rendering since it's already paginated from the DB
+  const paginatedData = filteredData;
 
   return (
     <div className="page-content">
@@ -334,6 +365,43 @@ export default function RefundLapsePage() {
         </div>
       </div>
       
+      {/* ── Tabs ── */}
+      <div style={{ display: "flex", borderBottom: "1px solid var(--line)", marginBottom: "20px" }}>
+        <button 
+          onClick={() => setActiveTab("refundLapse")}
+          style={{
+            background: "none",
+            border: "none",
+            padding: "10px 20px",
+            fontSize: "14px",
+            fontWeight: "600",
+            color: activeTab === "refundLapse" ? "var(--primary, #2563eb)" : "var(--muted)",
+            borderBottom: activeTab === "refundLapse" ? "2px solid var(--primary, #2563eb)" : "2px solid transparent",
+            cursor: "pointer",
+            transition: "all 0.2s"
+          }}
+        >
+          Refund & Lapse Data
+        </button>
+        <button 
+          onClick={() => setActiveTab("taxSummary")}
+          style={{
+            background: "none",
+            border: "none",
+            padding: "10px 20px",
+            fontSize: "14px",
+            fontWeight: "600",
+            color: activeTab === "taxSummary" ? "var(--primary, #2563eb)" : "var(--muted)",
+            borderBottom: activeTab === "taxSummary" ? "2px solid var(--primary, #2563eb)" : "2px solid transparent",
+            cursor: "pointer",
+            transition: "all 0.2s"
+          }}
+        >
+          Tax Summary Data
+        </button>
+      </div>
+
+      {activeTab === "refundLapse" && (
       <div className="table-card">
         <div className="table-header">
           <div className="table-title">Refund & Lapse Data</div>
@@ -423,9 +491,11 @@ export default function RefundLapsePage() {
           </table>
         </div>
       </div>
+      )}
 
       {/* ── Summary Table ── */}
-      <div className="table-card" style={{ marginTop: 24 }}>
+      {activeTab === "taxSummary" && (
+      <div className="table-card" style={{ marginTop: 0 }}>
         <div className="table-header">
           <div className="table-title">Tax Summary Data</div>
         </div>
@@ -464,31 +534,20 @@ export default function RefundLapsePage() {
           </table>
         </div>
       </div>
+      )}
 
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px", padding: "16px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "12px" }}>
-          <div style={{ fontSize: "13px", color: "var(--muted)", fontWeight: "500" }}>
-            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} entries
-          </div>
-          <div style={{ display: "flex", gap: "6px" }}>
-            <button 
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              style={{ padding: "6px 12px", border: "1px solid var(--line)", borderRadius: "6px", background: currentPage === 1 ? "var(--bg)" : "var(--panel)", color: currentPage === 1 ? "var(--muted)" : "var(--text)", cursor: currentPage === 1 ? "not-allowed" : "pointer", fontSize: "13px", fontWeight: "600", transition: "all 0.15s ease" }}
-            >
-              Previous
-            </button>
-            <div style={{ display: "flex", alignItems: "center", padding: "0 8px", fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
-              Page {currentPage} of {totalPages}
-            </div>
-            <button 
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              style={{ padding: "6px 12px", border: "1px solid var(--line)", borderRadius: "6px", background: currentPage === totalPages ? "var(--bg)" : "var(--panel)", color: currentPage === totalPages ? "var(--muted)" : "var(--text)", cursor: currentPage === totalPages ? "not-allowed" : "pointer", fontSize: "13px", fontWeight: "600", transition: "all 0.15s ease" }}
-            >
-              Next
-            </button>
+      {/* INFINITE SCROLL OBSERVER - SHARED FOR BOTH TABS */}
+      {totalCount > data.length && (
+        <div ref={observerRef} style={{ padding: "16px 20px", display: "flex", justifyContent: "center", alignItems: "center", borderTop: "1px solid var(--line)", background: "var(--panel)", flexDirection: "column", gap: "8px", marginTop: "16px", borderRadius: "8px", border: "1px solid var(--line)" }}>
+          <div style={{ fontSize: "13px", color: "var(--muted)", display: "flex", alignItems: "center", gap: "8px" }}>
+            {isLoading ? (
+              <>
+                <svg className="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ animation: "spin 1s linear infinite" }}>
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                </svg>
+                Loading more data...
+              </>
+            ) : `Scroll to load more (Showing ${data.length} of ${totalCount} records)`}
           </div>
         </div>
       )}

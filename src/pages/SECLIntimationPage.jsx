@@ -44,6 +44,7 @@ export default function SECLIntimationPage({ state, setState }) {
             pdfUrl: row.pdf_url || null,
             meta: {
               "Name of Bidder": row.name_of_bidder,
+              "Submitted Date": row.submitted_date,
               "Date of Auction": row.date_of_auction
             },
             details: {},
@@ -101,6 +102,7 @@ export default function SECLIntimationPage({ state, setState }) {
 
       const insertPayload = {
         name_of_bidder: formData.bidderName || "",
+        submitted_date: formData.submittedDate || new Date().toISOString().split('T')[0],
         date_of_auction: formData.auctionDate || "",
         seller_name: formData.sellerName || "",
         source_name: formData.sourceName || "",
@@ -125,6 +127,7 @@ export default function SECLIntimationPage({ state, setState }) {
         pdfName: formData.pdfFile ? formData.pdfFile.name : "Manual Entry",
         meta: {
           "Name of Bidder": formData.bidderName,
+          "Submitted Date": formData.submittedDate || new Date().toISOString().split('T')[0],
           "Date of Auction": formData.auctionDate
         },
         details: {},
@@ -248,6 +251,7 @@ export default function SECLIntimationPage({ state, setState }) {
 
             return {
               name_of_bidder: d.meta?.["Name of Bidder"] || "",
+              submitted_date: d.meta?.["Submitted Date"] || new Date().toISOString().split('T')[0],
               date_of_auction: d.meta?.["Date of Auction"] || "",
               seller_name: item["Seller Name"] || "",
               source_name: item["Source Name"] || "",
@@ -356,6 +360,7 @@ export default function SECLIntimationPage({ state, setState }) {
       try {
         const updatePayload = {
           name_of_bidder: updatedRow["Name of Bidder"] || updatedRow._meta?.["Name of Bidder"] || "",
+          submitted_date: updatedRow["Submitted Date"] || updatedRow._meta?.["Submitted Date"] || "",
           date_of_auction: updatedRow["Date of Auction"] || updatedRow._meta?.["Date of Auction"] || "",
           seller_name: updatedRow["Seller Name"] || "",
           source_name: updatedRow["Source Name"] || "",
@@ -479,6 +484,7 @@ export default function SECLIntimationPage({ state, setState }) {
           initialData={{}}
           columns={[
             { key: "bidderName", label: "Name of Bidder" },
+            { key: "submittedDate", label: "Submitted Date (YYYY-MM-DD)" },
             { key: "auctionDate", label: "Date of Auction (YYYY-MM-DD)" },
             { key: "sellerName", label: "Seller Name" },
             { key: "sourceName", label: "Source Name" },

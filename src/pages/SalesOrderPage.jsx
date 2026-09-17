@@ -621,7 +621,6 @@ export default function SalesOrderPage({ state, setState }) {
           isFetching={isFetching}
           onPageChange={(page) => {
             setCurrentPage(page);
-            setState(s => ({ ...s, data: null }));
           }}
         />
       )}
@@ -643,6 +642,7 @@ export default function SalesOrderPage({ state, setState }) {
           { key: "rate_per_te", label: "Rate Per TE(INR)" },
           { key: "amount", label: "Amount(INR)" },
         ]}
+        tableName="sales_orders"
       />
     </div>
   );

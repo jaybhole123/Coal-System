@@ -1,13 +1,142 @@
 import { useState, useEffect } from "react";
 
-export default function EditModal({ isOpen, onClose, onSave, title = "Edit Record", columns, initialData, showPdfUpload = true }) {
+const DropdownField = ({ value, onChange, isDate, styles, options }) => {
+  const [isInput, setIsInput] = useState(false);
+
+  if (isDate) {
+    return (
+      <input
+        type="date"
+        value={value || ""}
+        onChange={(e) => onChange(e.target.value)}
+        style={styles.input}
+      />
+    );
+  }
+
+  if (isInput) {
+    return (
+      <div style={{ display: "flex", gap: "8px" }}>
+        <input
+          type="text"
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          style={{ ...styles.input, flex: 1 }}
+          autoFocus
+          placeholder="Enter custom value..."
+        />
+        <button
+          type="button"
+          onClick={() => setIsInput(false)}
+          style={{
+            background: "var(--panel)",
+            border: "1px solid var(--line)",
+            borderRadius: "4px",
+            padding: "0 12px",
+            cursor: "pointer",
+            color: "var(--text)",
+            fontWeight: "bold"
+          }}
+          title="Select from list"
+        >
+          ▼
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+      <select
+        value={value || ""}
+        onChange={(e) => {
+          if (e.target.value === "__ADD_NEW__") {
+            setIsInput(true);
+            onChange("");
+          } else {
+            onChange(e.target.value);
+          }
+        }}
+        style={{ ...styles.input, flex: 1 }}
+      >
+        <option value="" disabled>Select option...</option>
+        {options && options.map((opt, i) => (
+          <option key={i} value={opt}>{opt}</option>
+        ))}
+        {value && (!options || !options.includes(value)) && <option value={value}>{value}</option>}
+        <option value="__ADD_NEW__" style={{ fontWeight: "bold", color: "#2563eb" }}>+ Add New</option>
+      </select>
+      
+      {value && (
+        <button
+          type="button"
+          onClick={() => setIsInput(true)}
+          style={{
+            background: "none",
+            border: "1px solid var(--line)",
+            borderRadius: "4px",
+            padding: "8px 10px",
+            cursor: "pointer",
+            color: "var(--muted)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "var(--panel)"
+          }}
+          title="Edit selected value"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        </button>
+      )}
+    </div>
+  );
+};
+
+import { supabase } from "../utils/supabase";
+
+export default function EditModal({ isOpen, onClose, onSave, title = "Edit Record", columns, initialData, showPdfUpload = true, tableName }) {
   const [formData, setFormData] = useState({});
+  const [optionsMap, setOptionsMap] = useState({});
 
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
     }
   }, [initialData, isOpen]);
+
+  useEffect(() => {
+    async function fetchOptions() {
+      if (!isOpen || !tableName || !columns || columns.length === 0) return;
+      
+      const selectColumns = columns
+        .filter(c => !/date|valid_from|valid_to/i.test(c.key || c.label) && c.type !== 'date')
+        .map(c => c.dbKey || c.key || c.label)
+        .join(',');
+        
+      if (!selectColumns) return;
+
+      try {
+        const { data, error } = await supabase.from(tableName).select(selectColumns);
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          const newOptionsMap = {};
+          columns.forEach(col => {
+            const fieldKey = col.key || col.label;
+            const dbFieldKey = col.dbKey || fieldKey;
+            // Get unique, non-null/empty values
+            const uniqueVals = [...new Set(data.map(item => item[dbFieldKey]).filter(val => val !== null && val !== "" && val !== undefined))];
+            newOptionsMap[fieldKey] = uniqueVals;
+          });
+          setOptionsMap(newOptionsMap);
+        }
+      } catch (err) {
+        console.error("Failed to fetch options for dropdowns:", err);
+      }
+    }
+    
+    fetchOptions();
+  }, [isOpen, tableName, columns]);
 
   if (!isOpen) return null;
 
@@ -43,18 +172,19 @@ export default function EditModal({ isOpen, onClose, onSave, title = "Edit Recor
           <div style={styles.grid}>
             {columns.map((col) => {
               const fieldKey = col.key || col.label;
-              const isDate = /date/i.test(fieldKey) || col.type === 'date';
+              const isDate = /date|valid_from|valid_to/i.test(fieldKey) || col.type === 'date';
               const val = formData[fieldKey] || "";
               const displayVal = isDate && val ? formatDateForInput(val) : val;
 
               return (
                 <div key={fieldKey} style={styles.formGroup}>
                   <label style={styles.label}>{col.label}</label>
-                  <input
-                    type={isDate ? "date" : "text"}
+                  <DropdownField
+                    isDate={isDate}
                     value={displayVal}
-                    onChange={(e) => handleChange(fieldKey, e.target.value)}
-                    style={styles.input}
+                    onChange={(newVal) => handleChange(fieldKey, newVal)}
+                    styles={styles}
+                    options={optionsMap[fieldKey] || []}
                   />
                 </div>
               );
@@ -135,10 +265,11 @@ const styles = {
     fontFamily: "var(--font-body)"
   },
   input: {
-    padding: "10px 12px", borderRadius: "4px", border: "1px solid var(--line)",
-    fontSize: "14px", color: "var(--text)", outline: "none", background: "var(--bg)",
-    fontFamily: "var(--font-mono)",
-    transition: "border-color 0.2s, box-shadow 0.2s"
+    padding: "12px 14px", borderRadius: "6px", border: "1px solid var(--line)",
+    fontSize: "14px", color: "var(--text)", outline: "none", background: "var(--panel)",
+    fontFamily: "var(--font-body)",
+    transition: "border-color 0.2s, box-shadow 0.2s, background-color 0.2s",
+    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
   },
   footer: {
     padding: "16px 24px", borderTop: "1px solid var(--line)",

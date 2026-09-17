@@ -7,19 +7,36 @@ import { parseSECLPaymentAdvice } from "../utils/seclPaymentAdviceParser";
 import { supabase } from "../utils/supabase";
 
 export default function SECLPaymentAdvicePage({ state, setState }) {
+  const PAGE_SIZE = 50;
   const { view, loading, loadingName, error, data, fileName } = state;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isFetching, setIsFetching] = useState(false);
 
   React.useEffect(() => {
     const fetchSupabaseData = async () => {
+      setIsFetching(true);
       try {
-        const { data: dbData, error } = await supabase
-          .from('secl_payment_advices')
-          .select('*')
-          .order('created_at', { ascending: false });
+        const from = (currentPage - 1) * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
 
-        if (error) throw error;
+        let { data: dbData, error, count } = await supabase
+          .from('secl_payment_advices')
+          .select('*', { count: 'exact' })
+          .order('created_at', { ascending: false })
+          .range(from, to);
+
+        if (error) {
+          if (error.code === 'PGRST103' || error.message?.includes('416')) {
+            dbData = [];
+          } else {
+            throw error;
+          }
+        }
+
+        setTotalCount(count || 0);
 
         if (dbData && dbData.length > 0) {
           const formattedData = dbData.map(row => {
@@ -46,22 +63,29 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
             };
           });
 
-          setState(s => ({
-            ...s,
-            view: "results",
-            data: formattedData,
-            fileName: "Loaded from Supabase"
-          }));
-        } else {
+          setState(s => {
+            const newData = currentPage === 1 ? formattedData : [...(s.data || []), ...formattedData];
+            const uniqueData = Array.from(new Map(newData.map(item => [item.id || item, item])).values());
+            
+            return {
+              ...s,
+              view: "results",
+              data: uniqueData,
+              fileName: "Loaded from Supabase"
+            };
+          });
+        } else if (currentPage === 1) {
           setState(s => ({ ...s, view: "drop", data: null, fileName: "" }));
         }
       } catch (err) {
         console.error("Failed to fetch from Supabase:", err);
+      } finally {
+        setIsFetching(false);
       }
     };
 
     fetchSupabaseData();
-  }, [refreshTrigger, setState]);
+  }, [refreshTrigger, currentPage, setState]);
 
   const handleManualAdd = async (formData) => {
     const qty = parseFloat(formData.quantity) || 1;
@@ -384,6 +408,9 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
           onDeleteRow={handleDeleteRow}
           onUpdateRow={handleUpdateRow}
           onAddManual={() => setIsModalOpen(true)}
+          onPageChange={() => setCurrentPage(p => p + 1)}
+          totalCount={totalCount}
+          isFetching={isFetching}
         />
       )}
 
@@ -393,18 +420,19 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
         onSave={handleManualAdd}
         title="Add Manual Entry"
         initialData={{}}
+        tableName="secl_payment_advices"
         columns={[
-          { key: "minesName", label: "Mines Name" },
-          { key: "customerName", label: "Customer Name" },
-          { key: "quantity", label: "Quantity (MT)" },
-          { key: "requisitePayment", label: "Requisite Payment (INR)" },
-          { key: "grandTotal", label: "Grand Total (INR)" },
+          { key: "minesName", dbKey: "mines_name", label: "Mines Name" },
+          { key: "customerName", dbKey: "customer_name", label: "Customer Name" },
+          { key: "quantity", dbKey: "quantity", label: "Quantity (MT)" },
+          { key: "requisitePayment", dbKey: "requisite_payment", label: "Requisite Payment (INR)" },
+          { key: "grandTotal", dbKey: "grand_total", label: "Grand Total (INR)" },
           { key: "auctionDate", label: "Auction Date" },
           { key: "dueDate", label: "Due Date" },
-          { key: "bidPrice", label: "Bid Price PMT" },
-          { key: "incl50", label: "Including 50 PMT Rate" },
-          { key: "inclTotal", label: "Including 50 Total" },
-          { key: "tcsAmount", label: "TCS Amount" }
+          { key: "bidPrice", dbKey: "bid_price", label: "Bid Price PMT" },
+          { key: "incl50", dbKey: "incl_50", label: "Including 50 PMT Rate" },
+          { key: "inclTotal", dbKey: "incl_total", label: "Including 50 Total" },
+          { key: "tcsAmount", dbKey: "tcs_amount", label: "TCS Amount" }
         ]}
       />
     </div>

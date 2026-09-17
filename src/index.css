@@ -808,17 +808,19 @@ body {
 }
 
 /* Horizontally scrollable wrapper */
-.summary-table-wrap {
+.summary-table-wrap, .table-scroll {
   width: 100%;
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: calc(100vh - 240px); /* Gives the table a scrollable area */
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--panel);
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;
 }
-.summary-table-wrap::-webkit-scrollbar { height: 5px; }
-.summary-table-wrap::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+.summary-table-wrap::-webkit-scrollbar, .table-scroll::-webkit-scrollbar { height: 5px; width: 5px; }
+.summary-table-wrap::-webkit-scrollbar-thumb, .table-scroll::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
 
 .stable {
   width: 100%;
@@ -830,10 +832,16 @@ body {
 
 /* Header */
 .stable thead tr {
-  background: rgba(0, 51, 102, 0.06);
+  /* Using a solid color here so scrolling rows don't show through the sticky header */
+  background: #f1f4f8; 
   border-bottom: 1px solid var(--line);
 }
 .stable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-clip: padding-box;
+  background: #f1f4f8;
   padding: 11px 16px;
   text-align: left;
   font-family: var(--font-body);
@@ -992,3 +1000,33 @@ body {
 @keyframes blinkText { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
 .blink-text { animation: blinkText 1.5s infinite linear; }
 
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.toolbar-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .toolbar-wrapper {
+    justify-content: flex-start;
+  }
+  .toolbar-wrapper > div {
+    flex: 1 1 100%;
+  }
+  .toolbar-wrapper input[type="text"] {
+    width: 100% !important;
+  }
+  .toolbar-wrapper button.ghost {
+    width: 100%;
+    justify-content: center;
+  }
+}
