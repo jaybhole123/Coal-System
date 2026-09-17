@@ -328,21 +328,30 @@ export default function SalesOrderPage({ state, setState }) {
         let finalPdfUrl = d.pdfUrl;
         
         // Upload if we have a new PDF
-        if (d.rawFile) {
-          const fileExt = (d.rawFile.name || "document.pdf").split('.').pop();
-          const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('pdfs')
-            .upload(fileName, d.rawFile, { cacheControl: '3600', upsert: false });
+        if (finalPdfUrl && finalPdfUrl.startsWith("blob:")) {
+          try {
+            const response = await fetch(finalPdfUrl);
+            const blob = await response.blob();
+            const fileExt = (d.pdfName || "document.pdf").split('.').pop();
+            const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
             
-          if (uploadError) throw uploadError;
-          
-          const { data: publicUrlData } = supabase.storage
-            .from('pdfs')
-            .getPublicUrl(fileName);
-            
-          finalPdfUrl = publicUrlData.publicUrl;
+            const { error: uploadError } = await supabase.storage
+              .from('pdfs')
+              .upload(fileName, blob, { contentType: "application/pdf", upsert: false });
+              
+            if (!uploadError) {
+              const { data: publicUrlData } = supabase.storage
+                .from('pdfs')
+                .getPublicUrl(fileName);
+              finalPdfUrl = publicUrlData.publicUrl;
+            } else {
+              console.warn("PDF upload failed:", uploadError);
+              finalPdfUrl = null;
+            }
+          } catch (e) {
+            console.warn("PDF upload error:", e);
+            finalPdfUrl = null;
+          }
         }
 
         const reqPay = d.pricing?.find(p => p.description?.toLowerCase().includes("requisite payment"));
